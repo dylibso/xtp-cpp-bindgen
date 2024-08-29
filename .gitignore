@@ -1,10 +1,10 @@
-#node_modules
-#dist
-#bundle.zip
-#bundle
-#tests/output
-#myplugin
-#bindgen-test-artifacts
+node_modules
+dist
+bundle.zip
+bundle
+tests/output
+myplugin
+bindgen-test-artifacts
 *.o
 *.wasm
 manual/extism-pdk.hpp
