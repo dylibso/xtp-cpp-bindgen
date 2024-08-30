@@ -10,24 +10,28 @@
 
 namespace pdk {
 
-<% // encode enums  -%>
-<% Object.values(schema.schemas).forEach(schema => { %>
-  <% if (!schema.enum) {
-       return;
-     } %>
-     // <%- formatCommentLine(schema.description) %>
-     enum class <%- makePublic(schema.name) %> {
-      <%- schema.enum.join(', ') %>
-     };
-<% }) %>
+<%# encode enums  -%>
+<% for (const schema of enums) { %>
+// <%- formatCommentLine(schema.description) %>
+enum class <%- makePublic(schema.name) %> {
+  <%- schema.enum.join(', ') %>
+};
+<% } %>
 
-<% // encode structs  -%>
+<%# encode structs  -%>
+<% for (const schema of objects) { %>
+struct <%- makePublic(schema.name) %> {
+  <% for (const prop of schema.properties) { %>
+  <%- getTypename(prop) %> <%- prop.name %>;
+  <% } %>
+};
+<% } %>
 
-<% // encode host function prototypes  -%>
+<%# encode host function prototypes  -%>
 enum class Error { extism, host_null, not_json };
 
 } // namespace pdk
 
 namespace impl {
-<% // encode impl function prototypes  -%>
+<%# encode impl function prototypes  -%>
 } // namespace impl
