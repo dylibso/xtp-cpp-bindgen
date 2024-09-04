@@ -1,48 +1,5 @@
 import ejs from "ejs";
-import { getContext, helpers, Property } from "@dylibso/xtp-bindgen";
-
-function toGolangType(property: Property): string {
-  if (property.$ref) return property.$ref.name;
-  switch (property.type) {
-    case "string":
-      if (property.format === "date-time") {
-        return "time.Time";
-      }
-      return "string";
-    case "number":
-      if (property.format === "float") {
-        return "float32";
-      }
-      if (property.format === "double") {
-        return "float64";
-      }
-      return "int64";
-    case "integer":
-      return "int32";
-    case "boolean":
-      return "bool";
-    case "object":
-      return "map[string]interface{}";
-    case "array":
-      if (!property.items) return "[]any";
-      // TODO this is not quite right to force cast
-      return `[]${toGolangType(property.items as Property)}`;
-    case "buffer":
-      return "[]byte";
-    default:
-      throw new Error("Can't convert property to Go type: " + property.type);
-  }
-}
-
-function pointerToGolangType(property: Property) {
-  const typ = toGolangType(property);
-
-  if (typ.startsWith("[]") || typ.startsWith("map[")) {
-    return typ;
-  }
-
-  return `*${typ}`;
-}
+import { getContext, helpers, Property, Import, Export, Parameter } from "@dylibso/xtp-bindgen";
 
 function makePublic(s: string) {
   const cap = s.charAt(0).toUpperCase();
@@ -63,7 +20,9 @@ function objectReferencesObject(existing: any, name: string) {
   return false;
 }
 
-function getTypename(property: Property): string {
+type PropertyLike = Property | Parameter;
+
+function toCppType(property: PropertyLike): string {
   if (property.$ref) return property.$ref.name;
   switch (property.type) {
     case "string":
@@ -86,15 +45,120 @@ function getTypename(property: Property): string {
     case "object":
       return "object_notimplemented";
     case "array":
-      //if (!property.items) return "[]any";
-      //// TODO this is not quite right to force cast
-      //return `[]${toGolangType(property.items as Property)}`;
-      return 'array_notimplemented';
+      return 'std::vector<' + toCppType(property.items as Property) + '>';
     case "buffer":
       return "std::vector<uint8_t>";
     default:
-      throw new Error("Can't convert property to Go type: " + property.type);
+      throw new Error("Can't convert property to C++ type: " + property.type);
   }
+}
+
+function toCppReturnType(property: PropertyLike): string {
+  const rawType = toCppType(property);
+  if (getEstimatedSize(property) > 128) {
+    return 'std::unique_ptr<' + rawType + '>';
+  }
+  return 'std::expected<' + rawType + ', Error>';
+}
+
+function toCppParamType(property: PropertyLike, isImport: boolean): string {
+  if (property.$ref) {
+    if (getEstimatedSize(property) <= 8) {
+      return property.$ref.name;
+    }
+    const prefix = isImport ? 'const ' : '';
+    return prefix + property.$ref.name + '&';
+  }
+  switch (property.type) {
+    case "string":
+      if (isImport) {
+        if (property.format === "date-time") {
+          return "std::string_view";
+        }
+        return "std::string_view";
+      } else {
+        return 'std::string&&';
+      }
+    case "buffer":
+      if (isImport) {
+        return 'std::span<const uint8_t>';
+      } else {
+        return 'std::vector<uint8_t>&&';
+      }
+    case "array":
+      if (isImport) {
+        return 'std::span<const ' + toCppType(property) + '>';
+      } else {
+        return 'std::vector<' + toCppType(property) + '>&&';
+      }
+  }
+  return toCppType(property);
+}
+
+function getEstimatedSize(property: PropertyLike): number {
+  if (property.$ref) {
+    if (property.$ref.enum) {
+      return 5;
+    }
+    return property.$ref.properties.reduce((accumulator: number, currentValue: Property) => {
+      return accumulator + getEstimatedSize(currentValue);
+    }, 0);
+  }
+  switch (property.type) {
+    case "string":
+      if (property.format === "date-time") {
+        return 14;
+      }
+      return 16;
+    case "number":
+      if (property.format === "float") {
+        return 4;
+      }
+      if (property.format === "double") {
+        return 8;
+      }
+      return 8;
+    case "integer":
+      return 4;
+    case "boolean":
+      return 1;
+    case "object":
+      return 9001;
+    case "array":
+      return 16;
+    case "buffer":
+      return 16;
+    default:
+      throw new Error("Cannot estimate size of type: " + property.type);
+  }
+}
+
+function getReturnType(func: Import | Export) {
+  if (func.output) {
+    return toCppReturnType(func.output);
+  }
+  return 'std::expected<void, Error>';
+}
+
+function getImportParamType(func: Import) {
+  if (func.input) {
+    return toCppParamType(func.input, true);
+  }
+  return '';
+}
+
+function getParamName(func: Import | Export) {
+  if (func.input) {
+    return 'input';
+  }
+  return '';
+}
+
+function getExportParamType(func: Export) {
+  if (func.input) {
+    return toCppParamType(func.input, false);
+  }
+  return '';
 }
 
 export function render() {
@@ -117,16 +181,24 @@ export function render() {
       objects.splice(i, 0, schema);
     }
   });
+  // sort the properties for efficient struct layout
+  for (const object of objects) {
+    object.properties.sort((a: Property, b: Property) => {
+      return getEstimatedSize(b) - getEstimatedSize(a);
+    });
+  }
 
   const ctx = {
     ...helpers,
     ...prevctx,
-    toGolangType,
-    pointerToGolangType,
     makePublic,
     enums,
     objects,
-    getTypename
+    toCppType,
+    getReturnType,
+    getImportParamType,
+    getParamName,
+    getExportParamType
   };
 
 
