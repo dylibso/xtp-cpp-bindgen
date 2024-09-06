@@ -23,6 +23,7 @@ namespace exports {
 <% for (const func of schema.exports) { %>
 int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
   <% if (func.input) { -%>
+  <% if (func.input.contentType === 'application/json') { -%>
   extism::log_debug("<%- func.name -%>: getting JSON input");
   auto input_str = extism::input().string();
   if (!input_str.size()) {
@@ -30,6 +31,11 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
     return -1;
   }
   auto input = jsoncons::decode_json<<%- getJSONDecodeType(func.input) -%>>(std::move(input_str));
+  <% } else if (isString(func.input)) { -%>
+  auto input = extism::input().string();
+  <% } else {-%>
+  auto input = extism::input<<%- getHandleType(func.input) -%>>().vec();
+  <% } -%>
   <% } -%>
   extism::log_debug("<%- func.name -%>: calling implementation function");
   auto result = impl::<%- func.name -%>(<%- func.input ? 'std::move(' + derefIfPointer(func.input) + 'input)' : '' -%>);
@@ -38,10 +44,14 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
     return -2;
   }
   <% if (func.output) { -%>
+  <% if (func.output.contentType === 'application/json') { -%>
   extism::log_debug("<%- func.name -%>: setting JSON output");
   std::string output;
   jsoncons::encode_json(*result, output);
-  if (!extism::output(output)) {
+  <% } else { -%>
+  auto& output = *result;
+  <% } -%>
+  if (!extism::output<<%- getHandleType(func.output) -%>>(output)) {
     extism::error_set("outputting failed");
     return -3;
   }

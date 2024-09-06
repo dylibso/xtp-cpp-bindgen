@@ -2,10 +2,14 @@
 
 <% for (const func of schema.exports) { %>
 <%- getExportReturnType(func) -%> impl::<%- func.name-%>(<%- getExportParamType(func) -%> <%- getParamName(func) -%>) {
+    <% if (featureFlags['stub-with-code-samples'] && codeSamples(func, 'c++').length > 0) { -%>
+      <%- codeSamples(func, 'c++')[0].source %>
+    <% } else { -%>
     <% if (returnsResult(func)) { -%>
     return std::unexpected(pdk::Error::not_implemented);
     <% } else { -%>
     return nullptr;
+    <% } -%>
     <% } -%>
 }
 <% } -%>

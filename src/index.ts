@@ -193,6 +193,10 @@ function isEnum(prop: PropertyLike) {
   return prop['$ref'] && prop['$ref']['enum'];
 }
 
+function isString(param: Parameter) {
+  return !param['$ref'] && param.type === 'string' && !param.format;
+}
+
 function getHandleType(prop: Parameter) {
   if (prop.contentType === 'application/json') {
     return 'char';
@@ -291,7 +295,8 @@ export function render() {
     getHandleType,
     getHandleAccessor,
     getJSONDecodeType,
-    derefIfPointer
+    derefIfPointer,
+    isString
   };
 
 
