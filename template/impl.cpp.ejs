@@ -1,0 +1,11 @@
+#include "pdk.gen.hpp"
+
+<% for (const func of schema.exports) { %>
+<%- getExportReturnType(func) -%> impl::<%- func.name-%>(<%- getExportParamType(func) -%> <%- getParamName(func) -%>) {
+    <% if (returnsResult(func)) { -%>
+    return std::unexpected(pdk::Error::not_implemented);
+    <% } else { -%>
+    return nullptr;
+    <% } -%>
+}
+<% } -%>

@@ -1,5 +1,5 @@
 import ejs from "ejs";
-import { getContext, helpers, Property, Import, Export, Parameter } from "@dylibso/xtp-bindgen";
+import { getContext, helpers, Property, Import, Export, Parameter, Schema } from "@dylibso/xtp-bindgen";
 
 function makePublic(s: string) {
   const cap = s.charAt(0).toUpperCase();
@@ -22,8 +22,8 @@ function objectReferencesObject(existing: any, name: string) {
 
 type PropertyLike = Property | Parameter;
 
-function toCppType(property: PropertyLike): string {
-  if (property.$ref) return property.$ref.name;
+function toCppType(property: PropertyLike, refnamespace: string): string {
+  if (property.$ref) return refnamespace + property.$ref.name;
   switch (property.type) {
     case "string":
       if (property.format === "date-time") {
@@ -43,9 +43,9 @@ function toCppType(property: PropertyLike): string {
     case "boolean":
       return "bool";
     case "object":
-      return "object_notimplemented";
+      return "std::string";
     case "array":
-      return 'std::vector<' + toCppType(property.items as Property) + '>';
+      return 'std::vector<' + toCppType(property.items as Property, refnamespace) + '>';
     case "buffer":
       return "std::vector<uint8_t>";
     default:
@@ -53,21 +53,25 @@ function toCppType(property: PropertyLike): string {
   }
 }
 
-function toCppReturnType(property: PropertyLike): string {
-  const rawType = toCppType(property);
+function toCppReturnType(property: PropertyLike, isImport: boolean): string {
+  const refnamespace = isImport ? '' : 'pdk::';
+  const rawType = toCppType(property, refnamespace);
   if (getEstimatedSize(property) > 128) {
     return 'std::unique_ptr<' + rawType + '>';
   }
-  return 'std::expected<' + rawType + ', Error>';
+  return 'std::expected<' + rawType + ', ' + refnamespace + 'Error>';
 }
 
 function toCppParamType(property: PropertyLike, isImport: boolean): string {
+  const refnamespace = isImport ? '' : 'pdk::';
   if (property.$ref) {
+    const name = toCppType(property, refnamespace);
     if (getEstimatedSize(property) <= 8) {
-      return property.$ref.name;
+      return name;
     }
     const prefix = isImport ? 'const ' : '';
-    return prefix + property.$ref.name + '&';
+    const suffix = isImport ? '&' : '&&';
+    return prefix + name + suffix;
   }
   switch (property.type) {
     case "string":
@@ -87,12 +91,12 @@ function toCppParamType(property: PropertyLike, isImport: boolean): string {
       }
     case "array":
       if (isImport) {
-        return 'std::span<const ' + toCppType(property) + '>';
+        return 'std::span<const ' + toCppType(property, refnamespace) + '>';
       } else {
-        return 'std::vector<' + toCppType(property) + '>&&';
+        return 'std::vector<' + toCppType(property, refnamespace) + '>&&';
       }
   }
-  return toCppType(property);
+  return toCppType(property, refnamespace);
 }
 
 function getEstimatedSize(property: PropertyLike): number {
@@ -133,11 +137,17 @@ function getEstimatedSize(property: PropertyLike): number {
   }
 }
 
-function getReturnType(func: Import | Export) {
+function getImportReturnType(func: Import) {
   if (func.output) {
-    return toCppReturnType(func.output);
+    return toCppReturnType(func.output, true);
+  } else if (!func.input) {
+    return 'void';
   }
   return 'std::expected<void, Error>';
+}
+
+function shouldImportReturnExplicitly(func: Import) {
+  return getImportReturnType(func) !== 'void';
 }
 
 function getImportParamType(func: Import) {
@@ -154,11 +164,85 @@ function getParamName(func: Import | Export) {
   return '';
 }
 
+function getExportReturnType(func: Export) {
+  if (func.output) {
+    return toCppReturnType(func.output, false);
+  }
+  return 'std::expected<void, pdk::Error>';
+}
+
 function getExportParamType(func: Export) {
   if (func.input) {
     return toCppParamType(func.input, false);
   }
   return '';
+}
+
+function getPropertyNames(schema: Schema) {
+  return schema.properties.map((item: Property) => item.name).join(', ');
+}
+
+function returnsResult(func: Import | Export) {
+  if (func.output) {
+    return getEstimatedSize(func.output) <= 128;
+  }
+  return true;
+}
+
+function isEnum(prop: PropertyLike) {
+  return prop['$ref'] && prop['$ref']['enum'];
+}
+
+function getHandleType(prop: Parameter) {
+  if (prop.contentType === 'application/json') {
+    return 'char';
+  }
+  else if (isEnum(prop) && prop.contentType === 'text/plain; charset=utf-8') {
+    return 'char';
+  }
+  else if (!prop['$ref']) {
+    if (prop.contentType === "application/x-binary") {
+      if (prop.type === 'buffer') {
+        return 'uint8_t';
+      } else if (prop.type === 'array' && !(prop.items as Property)['$ref']) {
+        // support fixed width numeric types
+        const aprop = prop.items as Property;
+        if (aprop.type === 'number' || aprop.type === 'integer') {
+          return toCppType(aprop, '');
+        }
+      }
+    } else if (prop.contentType === 'text/plain; charset=utf-8') {
+      if (prop.type === 'string' && !prop.format) {
+        return 'char';
+      } else if (prop.type === 'buffer') {
+        return 'char';
+      }
+    }
+  }
+  throw new Error("not sure what the handle type should be for " + prop.type + ' encoded as ' + prop.contentType);
+}
+
+function getHandleAccessor(prop: Parameter) {
+  if (getHandleType(prop) != 'char') {
+    return 'vec';
+  } else if (!prop['$ref'] && prop.contentType === 'text/plain; charset=utf-8' && prop.type === 'buffer') {
+    return 'vec';
+  }
+  return 'string';
+}
+
+function getJSONDecodeType(param: Parameter) {
+  if (getEstimatedSize(param) <= 128) {
+    return toCppType(param, '');
+  }
+  return 'std::unique_ptr<' + toCppType(param, '') + '>';
+}
+
+function derefIfPointer(param: Parameter) {
+  if (getEstimatedSize(param) <= 128) {
+    return '';
+  }
+  return '*';
 }
 
 export function render() {
@@ -195,10 +279,19 @@ export function render() {
     enums,
     objects,
     toCppType,
-    getReturnType,
+    getImportReturnType,
+    shouldImportReturnExplicitly,
     getImportParamType,
     getParamName,
-    getExportParamType
+    getExportReturnType,
+    getExportParamType,
+    getPropertyNames,
+    returnsResult,
+    isEnum,
+    getHandleType,
+    getHandleAccessor,
+    getJSONDecodeType,
+    derefIfPointer
   };
 
 

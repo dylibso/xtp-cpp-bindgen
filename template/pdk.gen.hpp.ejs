@@ -25,14 +25,14 @@ enum class <%- makePublic(schema.name) %> {
 struct <%- makePublic(schema.name) %> {
   <% for (const prop of schema.properties) { -%>
   // <%- formatCommentLine(prop.description) %>
-  <%-toCppType(prop) %> <%- prop.name -%>;
+  <%-toCppType(prop, '') %> <%- prop.name -%>;
   <% } %>
 };
 <% } %>
 
 <%# encode host function prototypes  -%>
 // host function errors
-enum class Error { extism, host_null, not_json };
+enum class Error { extism, host_null, not_json, not_implemented };
 
 <% for (const func of schema.imports) { -%>
 /**
@@ -40,12 +40,14 @@ enum class Error { extism, host_null, not_json };
 <% if (func.input || func.output) { -%>
  *
 <% } -%>
+<% if (func.input) { -%>
  * @param input <%- formatCommentBlock(func.input.description) %>
+<% } -%>
 <% if (func.output) { -%>
  * @return <%- formatCommentBlock(func.output.description) %>
 <% } -%>
 */
-<%- getReturnType(func) -%> <%- func.name-%>(<%- getImportParamType(func) -%> <%- getParamName(func) -%>);
+<%- getImportReturnType(func) -%> <%- func.name-%>(<%- getImportParamType(func) -%> <%- getParamName(func) -%>);
 
 <% } %>
 } // namespace pdk
@@ -66,7 +68,7 @@ namespace impl {
  * @return <%- formatCommentBlock(func.output.description) %>
 <% } -%>
 */
-<%- getReturnType(func) -%> <%- func.name-%>(<%- getExportParamType(func) -%> <%- getParamName(func) -%>);
+<%- getExportReturnType(func) -%> <%- func.name-%>(<%- getExportParamType(func) -%> <%- getParamName(func) -%>);
 
 <% } -%>
 } // namespace impl
