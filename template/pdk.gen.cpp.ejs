@@ -30,7 +30,7 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
     extism::error_set("0 length input cannot be json");
     return -1;
   }
-  auto input = jsoncons::decode_json<<%- getJSONDecodeType(func.input) -%>>(std::move(input_str));
+  auto input = jsoncons::decode_json<<%- getExportJSONDecodeType(func.input) -%>>(std::move(input_str));
   <% } else if (isString(func.input)) { -%>
   auto input = extism::input().string();
   <% } else {-%>
@@ -38,7 +38,7 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
   <% } -%>
   <% } -%>
   extism::log_debug("<%- func.name -%>: calling implementation function");
-  auto result = impl::<%- func.name -%>(<%- func.input ? 'std::move(' + derefIfPointer(func.input) + 'input)' : '' -%>);
+  auto result = impl::<%- func.name -%>(<%- func.input ? 'std::move(' + derefIfNotOptionalPointer(func.input) + 'input)' : '' -%>);
   if (!result) {
     extism::error_set("<%- func.name -%>: failed");
     return -2;
@@ -102,7 +102,7 @@ namespace imports {
   if (!out_string.size()) {
     return <%- returnsResult(func) ? 'std::unexpected(Error::not_json)': 'nullptr' -%>;
   }
-  return jsoncons::decode_json<<%- getJSONDecodeType(func.output)-%>>(std::move(out_string));
+  return jsoncons::decode_json<<%- getImportJSONDecodeType(func.output)-%>>(std::move(out_string));
   <% } -%>
   <% } else { -%>
   imports::<%- func.name-%>(<%- func.input ? '*in_handle' : '' -%> );

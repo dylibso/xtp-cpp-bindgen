@@ -22,7 +22,7 @@ function objectReferencesObject(existing: any, name: string) {
 
 type PropertyLike = Property | Parameter;
 
-function toCppType(property: PropertyLike, refnamespace: string): string {
+function toCppTypeInner(property: PropertyLike, refnamespace: string): string {
   if (property.$ref) return refnamespace + property.$ref.name;
   switch (property.type) {
     case "string":
@@ -53,10 +53,20 @@ function toCppType(property: PropertyLike, refnamespace: string): string {
   }
 }
 
+function toCppType(property: PropertyLike, refnamespace: string) {
+  if (!property.nullable) {
+    return toCppTypeInner(property, refnamespace);
+  }
+  return 'std::optional<' + toCppTypeInner(property, refnamespace) + '>';
+}
+
 function toCppReturnType(property: PropertyLike, isImport: boolean): string {
   const refnamespace = isImport ? '' : 'pdk::';
   const rawType = toCppType(property, refnamespace);
   if (getEstimatedSize(property) > 128) {
+    // unfortunately we can end up with std::unique_ptr<std::optional<...>>
+    // this is unavoidable to be able to indicate success and support optional
+    // with exceptions we simply use std::unique_ptr
     return 'std::unique_ptr<' + rawType + '>';
   }
   return 'std::expected<' + rawType + ', ' + refnamespace + 'Error>';
@@ -70,6 +80,13 @@ function toCppParamType(property: PropertyLike, isImport: boolean): string {
       return name;
     }
     const prefix = isImport ? 'const ' : '';
+    if (property.nullable && getEstimatedSize(property) > 128) {
+      const rawType = toCppTypeInner(property, refnamespace);
+      if (isImport) {
+        return prefix + rawType + ' *';
+      }
+      return prefix + 'std::unique_ptr<' + rawType + '>';
+    }
     const suffix = isImport ? '&' : '&&';
     return prefix + name + suffix;
   }
@@ -235,15 +252,22 @@ function getHandleAccessor(prop: Parameter) {
   return 'string';
 }
 
-function getJSONDecodeType(param: Parameter) {
+function getExportJSONDecodeType(param: Parameter) {
+  if (getEstimatedSize(param) <= 128) {
+    return toCppType(param, '');
+  }
+  return 'std::unique_ptr<' + toCppTypeInner(param, '') + '>';
+}
+
+function getImportJSONDecodeType(param: Parameter) {
   if (getEstimatedSize(param) <= 128) {
     return toCppType(param, '');
   }
   return 'std::unique_ptr<' + toCppType(param, '') + '>';
 }
 
-function derefIfPointer(param: Parameter) {
-  if (getEstimatedSize(param) <= 128) {
+function derefIfNotOptionalPointer(param: Parameter) {
+  if (param.nullable || getEstimatedSize(param) <= 128) {
     return '';
   }
   return '*';
@@ -294,8 +318,9 @@ export function render() {
     isEnum,
     getHandleType,
     getHandleAccessor,
-    getJSONDecodeType,
-    derefIfPointer,
+    getExportJSONDecodeType,
+    getImportJSONDecodeType,
+    derefIfNotOptionalPointer,
     isString
   };
 
