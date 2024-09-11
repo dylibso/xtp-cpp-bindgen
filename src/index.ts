@@ -43,7 +43,7 @@ function toCppTypeInner(property: PropertyLike, refnamespace: string): string {
     case "boolean":
       return "bool";
     case "object":
-      return "std::string";
+      return "jsoncons::json";
     case "array":
       return 'std::vector<' + toCppType(property.items as Property, refnamespace) + '>';
     case "buffer":
@@ -150,7 +150,7 @@ function getEstimatedSize(property: PropertyLike): number {
     case "boolean":
       return 1;
     case "object":
-      return 9001;
+      return 64;
     case "array":
       return 16;
     case "buffer":
@@ -266,6 +266,17 @@ function needsNullCheck(param: Parameter) {
   return !param.nullable && isLargeType(param);
 }
 
+function hasUntypedObject(objects: any) {
+  for (const object of objects) {
+    for (const prop of object.properties) {
+      if (!prop.$ref && prop.type === 'object') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function render() {
   const tmpl = Host.inputString();
   const prevctx = getContext();
@@ -313,7 +324,8 @@ export function render() {
     getJSONDecodeType,
     derefIfNotOptionalPointer,
     needsNullCheck,
-    isString
+    isString,
+    hasUntypedObject
   };
 
 
