@@ -32,7 +32,7 @@ struct <%- makePublic(schema.name) %> {
 
 <%# encode host function prototypes  -%>
 // host function errors
-enum class Error { extism, host_null, not_json, not_implemented };
+enum class Error { extism, host_null, not_json, json_null, not_implemented };
 
 <% for (const func of schema.imports) { -%>
 /**

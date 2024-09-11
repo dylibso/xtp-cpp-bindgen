@@ -30,7 +30,13 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
     extism::error_set("0 length input cannot be json");
     return -1;
   }
-  auto input = jsoncons::decode_json<<%- getExportJSONDecodeType(func.input) -%>>(std::move(input_str));
+  auto input = jsoncons::decode_json<<%- getJSONDecodeType(func.input) -%>>(std::move(input_str));
+  <% if (needsNullCheck(func.input)) { -%>
+  if (!input) {
+    extism::error_set("null not allowed as input");
+    return -2;
+  }
+  <% } -%>
   <% } else if (isString(func.input)) { -%>
   auto input = extism::input().string();
   <% } else {-%>
@@ -41,10 +47,16 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
   auto result = impl::<%- func.name -%>(<%- func.input ? 'std::move(' + derefIfNotOptionalPointer(func.input) + 'input)' : '' -%>);
   if (!result) {
     extism::error_set("<%- func.name -%>: failed");
-    return -2;
+    return -3;
   }
   <% if (func.output) { -%>
   <% if (func.output.contentType === 'application/json') { -%>
+  <% if (needsNullCheck(func.output)) { -%>
+  if (!*result) {
+    extism::error_set("null not allowed as output");
+    return -4;
+  }
+  <% } -%>
   extism::log_debug("<%- func.name -%>: setting JSON output");
   std::string output;
   jsoncons::encode_json(*result, output);
@@ -53,7 +65,7 @@ int32_t EXTISM_EXPORTED_FUNCTION(<%- func.name -%>) {
   <% } -%>
   if (!extism::output<<%- getHandleType(func.output) -%>>(output)) {
     extism::error_set("outputting failed");
-    return -3;
+    return -5;
   }
   <% } -%>
   extism::log_debug("<%- func.name -%>: returning");
@@ -86,13 +98,13 @@ namespace imports {
   <% } -%>
   auto in_handle = extism::UniqueHandle<<%- getHandleType(func.input) -%>>::from(encoded);
   if (!in_handle) {
-    return <%- returnsResult(func) ? 'std::unexpected(Error::extism)': 'nullptr' -%>;
+    return std::unexpected(Error::extism);
   }
   <% } -%>
   <% if (func.output) { -%>
   auto out_raw = imports::<%- func.name-%>(<%- func.input ? '*in_handle' : '' -%> );
   if (!out_raw) {
-    return <%- returnsResult(func) ? 'std::unexpected(Error::host_null)': 'nullptr' -%>;
+    return std::unexpected(Error::host_null);
   }
   extism::UniqueHandle<<%- getHandleType(func.output) -%>> out_handle(out_raw);
   <% if (func.output.contentType !== 'application/json') { -%>
@@ -100,9 +112,18 @@ namespace imports {
   <% } else { -%>
   auto out_string = out_handle.string();
   if (!out_string.size()) {
-    return <%- returnsResult(func) ? 'std::unexpected(Error::not_json)': 'nullptr' -%>;
+    return std::unexpected(Error::not_json);
   }
-  return jsoncons::decode_json<<%- getImportJSONDecodeType(func.output)-%>>(std::move(out_string));
+  <% if (needsNullCheck(func.output)) { -%>
+  auto output = jsoncons::decode_json<<%- getJSONDecodeType(func.output)-%>>(std::move(out_string));
+  if (!output) {
+    extism::error_set("null not allowed as output");
+    return std::unexpected(Error::json_null);
+  }
+  return output;
+  <% } else { -%>
+  return jsoncons::decode_json<<%- getJSONDecodeType(func.output)-%>>(std::move(out_string));
+  <% } -%>
   <% } -%>
   <% } else { -%>
   imports::<%- func.name-%>(<%- func.input ? '*in_handle' : '' -%> );

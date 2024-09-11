@@ -54,21 +54,27 @@ function toCppTypeInner(property: PropertyLike, refnamespace: string): string {
 }
 
 function toCppType(property: PropertyLike, refnamespace: string) {
-  if (!property.nullable) {
-    return toCppTypeInner(property, refnamespace);
+  const innerType = toCppTypeInner(property, refnamespace);
+  if (property.nullable) {
+    return 'std::optional<' + innerType + '>';
   }
-  return 'std::optional<' + toCppTypeInner(property, refnamespace) + '>';
+  return innerType;
 }
 
-function toCppReturnType(property: PropertyLike, isImport: boolean): string {
-  const refnamespace = isImport ? '' : 'pdk::';
-  const rawType = toCppType(property, refnamespace);
-  if (getEstimatedSize(property) > 128) {
-    // unfortunately we can end up with std::unique_ptr<std::optional<...>>
-    // this is unavoidable to be able to indicate success and support optional
-    // with exceptions we simply use std::unique_ptr
-    return 'std::unique_ptr<' + rawType + '>';
+function isLargeType(property: PropertyLike) {
+  return getEstimatedSize(property) > 128;
+}
+
+function toStorageType(param: Parameter, refnamespace: string) {
+  if (isLargeType(param)) {
+    return 'std::unique_ptr<' + toCppTypeInner(param, refnamespace) + '>';
   }
+  return toCppType(param, refnamespace);
+}
+
+function toCppReturnType(property: Parameter, isImport: boolean): string {
+  const refnamespace = isImport ? '' : 'pdk::';
+  const rawType = toStorageType(property, refnamespace);
   return 'std::expected<' + rawType + ', ' + refnamespace + 'Error>';
 }
 
@@ -80,7 +86,7 @@ function toCppParamType(property: PropertyLike, isImport: boolean): string {
       return name;
     }
     const prefix = isImport ? 'const ' : '';
-    if (property.nullable && getEstimatedSize(property) > 128) {
+    if (property.nullable && isLargeType(property)) {
       const rawType = toCppTypeInner(property, refnamespace);
       if (isImport) {
         return prefix + rawType + ' *';
@@ -199,13 +205,6 @@ function getPropertyNames(schema: Schema) {
   return schema.properties.map((item: Property) => item.name).join(', ');
 }
 
-function returnsResult(func: Import | Export) {
-  if (func.output) {
-    return getEstimatedSize(func.output) <= 128;
-  }
-  return true;
-}
-
 function isEnum(prop: PropertyLike) {
   return prop['$ref'] && prop['$ref']['enum'];
 }
@@ -252,25 +251,19 @@ function getHandleAccessor(prop: Parameter) {
   return 'string';
 }
 
-function getExportJSONDecodeType(param: Parameter) {
-  if (getEstimatedSize(param) <= 128) {
-    return toCppType(param, '');
-  }
-  return 'std::unique_ptr<' + toCppTypeInner(param, '') + '>';
-}
-
-function getImportJSONDecodeType(param: Parameter) {
-  if (getEstimatedSize(param) <= 128) {
-    return toCppType(param, '');
-  }
-  return 'std::unique_ptr<' + toCppType(param, '') + '>';
+function getJSONDecodeType(param: Parameter) {
+  return toStorageType(param, '');
 }
 
 function derefIfNotOptionalPointer(param: Parameter) {
-  if (param.nullable || getEstimatedSize(param) <= 128) {
+  if (param.nullable || !isLargeType(param)) {
     return '';
   }
   return '*';
+}
+
+function needsNullCheck(param: Parameter) {
+  return !param.nullable && isLargeType(param);
 }
 
 export function render() {
@@ -314,13 +307,12 @@ export function render() {
     getExportReturnType,
     getExportParamType,
     getPropertyNames,
-    returnsResult,
     isEnum,
     getHandleType,
     getHandleAccessor,
-    getExportJSONDecodeType,
-    getImportJSONDecodeType,
+    getJSONDecodeType,
     derefIfNotOptionalPointer,
+    needsNullCheck,
     isString
   };
 
