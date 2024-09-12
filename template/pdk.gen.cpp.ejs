@@ -5,6 +5,18 @@
 #include "pdk.gen.hpp"
 #include <magic_enum.hpp>
 
+<% if (usesBuffer(objects)) { -%>
+static std::vector<uint8_t> fromJSONToBuffer(const jsoncons::json &val) {
+  return val.as<std::vector<uint8_t>>(jsoncons::byte_string_arg,
+                                      jsoncons::semantic_tag::base64);
+}
+
+static jsoncons::json toJSONFromByteBuffer(const std::vector<uint8_t> &val) {
+  return jsoncons::json(jsoncons::byte_string_arg, val,
+                        jsoncons::semantic_tag::base64);
+}
+<% } -%>
+
 <%# encode enums  -%>
 <% for (const schema of enums) { -%>
 JSONCONS_ENUM_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>,
@@ -12,8 +24,21 @@ JSONCONS_ENUM_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>,
 <% } -%>
 <%# encode structs  -%>
 <% for (const schema of objects) { -%>
+<% if (!objectHasBuffer(schema)) { -%>
 JSONCONS_ALL_MEMBER_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>,
   <%- getPropertyNames(schema) -%> )
+<% } else {-%>
+JSONCONS_ALL_MEMBER_NAME_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>
+<% for (const prop of schema.properties) { -%>
+<% if (!isBuffer(prop)) { -%>
+, (<%- prop.name -%>, "<%- prop.name -%>")
+<% } else {-%>
+, (<%- prop.name -%>, "<%- prop.name -%>", JSONCONS_RDWR, jsoncons::always_true(),
+     toJSONFromByteBuffer, fromJSONToBuffer)
+<% } -%>
+<% } -%>
+)
+<% } -%>
 <% } -%>
 
 namespace pdk {

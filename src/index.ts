@@ -277,6 +277,27 @@ function hasUntypedObject(objects: any) {
   return false;
 }
 
+function objectHasBuffer(object: Schema) {
+  for (const prop of object.properties) {
+    if (!prop.$ref && prop.type === 'buffer') {
+      return true;
+    }
+  }
+}
+
+function usesBuffer(objects: any) {
+  for (const object of objects) {
+    if (objectHasBuffer(object)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isBuffer(prop: Property) {
+  return (!prop.$ref && prop.type === 'buffer');
+}
+
 export function render() {
   const tmpl = Host.inputString();
   const prevctx = getContext();
@@ -325,7 +346,10 @@ export function render() {
     derefIfNotOptionalPointer,
     needsNullCheck,
     isString,
-    hasUntypedObject
+    hasUntypedObject,
+    objectHasBuffer,
+    usesBuffer,
+    isBuffer
   };
 
 
