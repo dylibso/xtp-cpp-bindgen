@@ -11,7 +11,7 @@ name = "<%- project.name %>"
 build = "make"
 
 # xtp plugin init runs this script to format the code
-format = "$WASI_SDK_PATH/bin/clang-format -i *.cpp *.hpp"
+format = "make format"
 
 # xtp plugin init runs this script before running the format script
-#prepare = "go get ./..."
+#prepare = ""

@@ -1,34 +1,51 @@
-WASI_SDK_PATH?=../../wasi-sdk
+ifeq ($(origin WASI_SDK_PATH),undefined)
+    WASI_SDK_PATH=./wasi-sdk
+    ifeq ("$(wildcard ./wasi-sdk)","")
+        $(shell chmod +x ./install-wasi-sdk.sh)
+        $(shell ./install-wasi-sdk.sh)
+    endif
+endif
 
 .PHONY: build
 build: dist/plugin.wasm
 
-.PHONY: run
-run: dist/plugin.wasm
-	extism call ./dist/plugin.wasm referenceTypes --log-level debug --wasi --input "\"apple\""
-
-.PHONY: run-bad-input
-run-bad-input: dist/plugin.wasm
-	extism call ./dist/plugin.wasm referenceTypes --log-level debug --wasi --input "\"steak\""
-
-.PHONY: run-top
-run-top: dist/plugin.wasm
-	extism call ./dist/plugin.wasm topLevelPrimitives --log-level debug --wasi --input "\"hello\""
-
-.PHONY: run-void
-run-void: dist/plugin.wasm
-	extism call ./dist/plugin.wasm voidFunc --log-level debug --wasi
-
-pdk.gen.o: pdk.gen.cpp pdk.gen.hpp extism-pdk.hpp
-	$(WASI_SDK_PATH)/bin/clang++ -I. -Imagic_enum -std=c++23 -fno-exceptions -O2 -g -c pdk.gen.cpp
-
-impl.o: impl.cpp pdk.gen.hpp
-	$(WASI_SDK_PATH)/bin/clang++ -I. -std=c++23 -fno-exceptions -O2 -g -c impl.cpp
-
-dist/plugin.wasm: pdk.gen.o impl.o
-	mkdir -p dist
-	$(WASI_SDK_PATH)/bin/clang++ -I. -std=c++23 -fno-exceptions -O2 -g -o $@ $^ -mexec-model=reactor
+.PHONY: format
+format:
+	$(WASI_SDK_PATH)/bin/clang-format -i *.cpp *.hpp
 
 .PHONY: clean
 clean:
 	rm -f *.wasm *.o
+
+.PHONY: veryclean
+veryclean: clean
+	rm -rf include ./wasi-sdk
+
+
+include/extism-pdk.hpp:
+	mkdir -p include
+	cd include && \
+		wget -q https://raw.githubusercontent.com/extism/cpp-pdk/695c794d2f3a42dff8c6f37e1902ad0dee9ff29a/extism-pdk.hpp
+
+include/magic_enum/include/magic_enum:
+	mkdir -p include/magic_enum
+	cd include/magic_enum && \
+		wget -q https://github.com/Neargye/magic_enum/releases/download/v0.9.6/magic_enum-v0.9.6.tar.gz && \
+		tar xf magic_enum-v0.9.6.tar.gz
+
+include/jsoncons/include:
+	mkdir -p include
+	cd include && \
+		wget -q https://github.com/danielaparker/jsoncons/archive/refs/tags/v0.177.0.zip && \
+		unzip -qq v0.177.0.zip && \
+		mv jsoncons-0.177.0 jsoncons
+
+pdk.gen.o: pdk.gen.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
+	$(WASI_SDK_PATH)/bin/clang++ -Iinclude -Iinclude/jsoncons/include -Iinclude/magic_enum/include/magic_enum -std=c++23 -fno-exceptions -O2 -g -c pdk.gen.cpp
+
+impl.o: impl.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
+	$(WASI_SDK_PATH)/bin/clang++ -Iinclude -Iinclude/jsoncons/include -Iinclude/magic_enum/include/magic_enum -std=c++23 -fno-exceptions -O2 -g -c impl.cpp
+
+dist/plugin.wasm: pdk.gen.o impl.o
+	mkdir -p dist
+	$(WASI_SDK_PATH)/bin/clang++ -std=c++23 -fno-exceptions -O2 -g -o $@ $^ -mexec-model=reactor
