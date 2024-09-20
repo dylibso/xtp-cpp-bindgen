@@ -15,7 +15,7 @@ namespace pdk {
 <%# encode enums  -%>
 <% for (const schema of enums) { %>
 // <%- formatCommentLine(schema.description) %>
-enum class <%- makePublic(schema.name) %> {
+enum class <%- cppIdentifer(schema.name) %> {
   <%- schema.enum.join(', ') %>
 };
 <% } %>
@@ -23,7 +23,7 @@ enum class <%- makePublic(schema.name) %> {
 <%# encode structs  -%>
 <% for (const schema of objects) { %>
 // <%- formatCommentLine(schema.description) %>
-struct <%- makePublic(schema.name) %> {
+struct <%- cppIdentifer(schema.name) %> {
   <% for (const prop of schema.properties) { -%>
   // <%- formatCommentLine(prop.description) %>
   <%-toCppType(prop, '') %> <%- prop.name -%>;

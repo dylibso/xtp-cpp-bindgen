@@ -1,14 +1,12 @@
 import ejs from "ejs";
 import { getContext, helpers, Property, Import, Export, Parameter, Schema } from "@dylibso/xtp-bindgen";
 
-function makePublic(s: string) {
-  const cap = s.charAt(0).toUpperCase();
-  if (s.charAt(0) === cap) {
-    return s;
-  }
+function snakeToPascalCase(s: string) {
+  return helpers.capitalize(helpers.snakeToCamelCase(s));
+}
 
-  const pub = cap + s.slice(1);
-  return pub;
+function cppIdentifer(s: string) {
+  return snakeToPascalCase(s);
 }
 
 function objectReferencesObject(existing: any, name: string) {
@@ -23,7 +21,7 @@ function objectReferencesObject(existing: any, name: string) {
 type PropertyLike = Property | Parameter;
 
 function toCppTypeInner(property: PropertyLike, refnamespace: string): string {
-  if (property.$ref) return refnamespace + property.$ref.name;
+  if (property.$ref) return refnamespace + cppIdentifer(property.$ref.name);
   switch (property.type) {
     case "string":
       if (property.format === "date-time") {
@@ -328,7 +326,7 @@ export function render() {
   const ctx = {
     ...helpers,
     ...prevctx,
-    makePublic,
+    cppIdentifer,
     enums,
     objects,
     toCppType,

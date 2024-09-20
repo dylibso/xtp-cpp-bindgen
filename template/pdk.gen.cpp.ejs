@@ -19,16 +19,16 @@ static jsoncons::json toJSONFromByteBuffer(const std::vector<uint8_t> &val) {
 
 <%# encode enums  -%>
 <% for (const schema of enums) { -%>
-JSONCONS_ENUM_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>,
+JSONCONS_ENUM_TRAITS( <%- 'pdk::'+cppIdentifer(schema.name) -%>,
   <%- schema.enum.join(', ') -%> )
 <% } -%>
 <%# encode structs  -%>
 <% for (const schema of objects) { -%>
 <% if (!objectHasBuffer(schema)) { -%>
-JSONCONS_ALL_MEMBER_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>,
+JSONCONS_ALL_MEMBER_TRAITS( <%- 'pdk::'+cppIdentifer(schema.name) -%>,
   <%- getPropertyNames(schema) -%> )
 <% } else {-%>
-JSONCONS_ALL_MEMBER_NAME_TRAITS( <%- 'pdk::'+makePublic(schema.name) -%>
+JSONCONS_ALL_MEMBER_NAME_TRAITS( <%- 'pdk::'+cppIdentifer(schema.name) -%>
 <% for (const prop of schema.properties) { -%>
 <% if (!isBuffer(prop)) { -%>
 , (<%- prop.name -%>, "<%- prop.name -%>")
