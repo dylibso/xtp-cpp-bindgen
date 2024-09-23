@@ -25,7 +25,7 @@ veryclean: clean
 include/extism-pdk.hpp:
 	mkdir -p include
 	cd include && \
-		wget -q https://raw.githubusercontent.com/extism/cpp-pdk/695c794d2f3a42dff8c6f37e1902ad0dee9ff29a/extism-pdk.hpp
+		wget -q https://raw.githubusercontent.com/extism/cpp-pdk/refs/tags/v0.1.0/extism-pdk.hpp
 
 include/magic_enum/include/magic_enum:
 	mkdir -p include/magic_enum
