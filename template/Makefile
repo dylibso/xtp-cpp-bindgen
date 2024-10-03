@@ -25,18 +25,18 @@ veryclean: clean
 include/extism-pdk.hpp:
 	mkdir -p include
 	cd include && \
-		wget -q https://raw.githubusercontent.com/extism/cpp-pdk/refs/tags/v0.1.0/extism-pdk.hpp
+		curl -OsL https://raw.githubusercontent.com/extism/cpp-pdk/refs/tags/v0.1.0/extism-pdk.hpp
 
 include/magic_enum/include/magic_enum:
 	mkdir -p include/magic_enum
 	cd include/magic_enum && \
-		wget -q https://github.com/Neargye/magic_enum/releases/download/v0.9.6/magic_enum-v0.9.6.tar.gz && \
+		curl -OsL https://github.com/Neargye/magic_enum/releases/download/v0.9.6/magic_enum-v0.9.6.tar.gz && \
 		tar xf magic_enum-v0.9.6.tar.gz
 
 include/jsoncons/include:
 	mkdir -p include
 	cd include && \
-		wget -q https://github.com/danielaparker/jsoncons/archive/refs/tags/v0.177.0.zip && \
+		curl -OsL https://github.com/danielaparker/jsoncons/archive/refs/tags/v0.177.0.zip && \
 		unzip -qq v0.177.0.zip && \
 		mv jsoncons-0.177.0 jsoncons
 
