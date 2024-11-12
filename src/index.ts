@@ -1,105 +1,174 @@
 import ejs from "ejs";
-import { getContext, helpers, Property, Import, Export, Parameter, Schema } from "@dylibso/xtp-bindgen";
-
-function snakeToPascalCase(s: string) {
-  return helpers.capitalize(helpers.snakeToCamelCase(s));
-}
+import { getContext, helpers, Property, Import, Export, Parameter, Schema, XtpNormalizedType, ArrayType, ObjectType, EnumType, MapType, XtpTyped } from "@dylibso/xtp-bindgen";
 
 function cppIdentifer(s: string) {
-  return snakeToPascalCase(s);
+  if (!s) throw Error('Name missing to convert')
+  return helpers.snakeToPascalCase(s);
 }
 
-function objectReferencesObject(existing: any, name: string) {
+function objectReferencesObject(existing: ObjectType, name: string) {
   for (const prop of existing.properties) {
-    if (prop['$ref'] && prop['$ref']['name'] === name) {
-      return true;
+    if (prop.kind === 'object') {
+      const object = prop as ObjectType
+      if (object.name === name) {
+        return true
+      }
     }
   }
-  return false;
+  return false
 }
 
-type PropertyLike = Property | Parameter;
-
-function toCppTypeInner(property: PropertyLike, refnamespace: string): string {
-  if (property.$ref) return refnamespace + cppIdentifer(property.$ref.name);
-  switch (property.type) {
-    case "string":
-      if (property.format === "date-time") {
-        return "std::string";
+function v2ToCppTypeXInner(type: XtpNormalizedType, refnamespace: string): string {
+  switch (type.kind) {
+    case 'string':
+      return 'std::string'
+    case 'int32':
+      return 'int32_t'
+    case 'int64':
+      return 'int64_t'
+    case 'float':
+      return 'float'
+    case 'double':
+      return 'double'
+    case 'byte':
+      return 'uint8_t'
+    case 'date-time':
+      return 'std::string'
+    case 'boolean':
+      return 'bool'
+    case 'array':
+      const arrayType = type as ArrayType
+      return 'std::vector<' + v2ToCppTypeX(arrayType.elementType, refnamespace) + '>'
+    case 'buffer':
+      return "std::vector<uint8_t>"
+    case 'object':
+      const oType = (type as ObjectType)
+      if (oType.properties?.length > 0) {
+        return refnamespace + cppIdentifer(oType.name)
+      } else {
+        // untyped object
+        return "jsoncons::json"
       }
-      return "std::string";
-    case "number":
-      if (property.format === "float") {
-        return "float";
-      }
-      if (property.format === "double") {
-        return "double";
-      }
-      return "int64_t";
-    case "integer":
-      return "int32_t";
-    case "boolean":
-      return "bool";
-    case "object":
-      return "jsoncons::json";
-    case "array":
-      return 'std::vector<' + toCppType(property.items as Property, refnamespace) + '>';
-    case "buffer":
-      return "std::vector<uint8_t>";
+    case 'enum':
+      return refnamespace + cppIdentifer((type as EnumType).name)
+    case 'map':
+      const { keyType, valueType } = type as MapType
+      return 'std::unordered_map<' + v2ToCppTypeX(keyType, refnamespace) + ', ' + v2ToCppTypeX(valueType, refnamespace) + '>'
     default:
-      throw new Error("Can't convert property to C++ type: " + property.type);
+      throw new Error("Can't convert XTP type to C++ type: " + JSON.stringify(type))
   }
 }
 
-function toCppType(property: PropertyLike, refnamespace: string) {
-  const innerType = toCppTypeInner(property, refnamespace);
-  if (property.nullable) {
+function v2ToCppTypeX(type: XtpNormalizedType, refnamespace: string) {
+  const innerType = v2ToCppTypeXInner(type, refnamespace);
+  if (type.nullable) {
     return 'std::optional<' + innerType + '>';
   }
   return innerType;
 }
 
-function isLargeType(property: PropertyLike) {
-  return getEstimatedSize(property) > 128;
+function v2ToCppType(property: XtpTyped, refnamespace: string, required?: boolean): string {
+  const t = v2ToCppTypeX(property.xtpType, refnamespace)
+
+  // if required is unset, just return what we get back
+  if (required === undefined) return t
+
+  // if it's set and true, just return what we get back
+  if (required) return t
+
+  // otherwise it's false, so let's ensure it's optional
+  if (t.startsWith('std::optional<')) return t
+  return `std::optional<${t}>`
 }
 
-function toStorageType(param: Parameter, refnamespace: string) {
-  if (isLargeType(param)) {
-    return 'std::unique_ptr<' + toCppTypeInner(param, refnamespace) + '>';
-  }
-  return toCppType(param, refnamespace);
-}
-
-function toCppReturnType(property: Parameter, isImport: boolean): string {
-  const refnamespace = isImport ? '' : 'pdk::';
-  const rawType = toStorageType(property, refnamespace);
-  return 'std::expected<' + rawType + ', ' + refnamespace + 'Error>';
-}
-
-function toCppParamType(property: PropertyLike, isImport: boolean): string {
-  const refnamespace = isImport ? '' : 'pdk::';
-  if (property.$ref) {
-    const name = toCppType(property, refnamespace);
-    if (getEstimatedSize(property) <= 8) {
-      return name;
-    }
-    const prefix = isImport ? 'const ' : '';
-    if (property.nullable && isLargeType(property)) {
-      const rawType = toCppTypeInner(property, refnamespace);
-      if (isImport) {
-        return prefix + rawType + ' *';
+function v2GetEstimatedSize(type: XtpNormalizedType): number {
+  switch (type.kind) {
+    case 'string':
+      return 16
+    case 'int32':
+      return 4
+    case 'int64':
+      return 8
+    case 'float':
+      return 4
+    case 'double':
+      return 8
+    case 'byte':
+      return 1
+    case 'date-time':
+      return 14
+    case 'boolean':
+      return 1
+    case 'array':
+      return 16
+    case 'buffer':
+      return 16
+    case 'object':
+      const oType = (type as ObjectType)
+      if (oType.properties?.length > 0) {
+        return oType.properties.reduce((accumulator: number, currentValue: XtpNormalizedType) => {
+          return accumulator + v2GetEstimatedSize(currentValue);
+        }, 0);
+      } else {
+        // untyped object
+        return 64
       }
-      return prefix + 'std::unique_ptr<' + rawType + '>';
-    }
-    const suffix = isImport ? '&' : '&&';
-    return prefix + name + suffix;
+    case 'enum':
+      return 5
+    case 'map':
+      return 16
+    default:
+      throw new Error("Can't estimate size for XTP type: " + JSON.stringify(type))
   }
-  switch (property.type) {
+}
+
+function v2IsLargeType(type: XtpNormalizedType) {
+  return v2GetEstimatedSize(type) > 128
+}
+
+function v2ToStorageType(type: XtpNormalizedType, refnamespace: string) {
+  if (v2IsLargeType(type)) {
+    return 'std::unique_ptr<' + v2ToCppTypeXInner(type, refnamespace) + '>'
+  }
+  return v2ToCppTypeX(type, refnamespace)
+}
+
+function v2ToCppReturnType(property: XtpTyped, isImport: boolean): string {
+  const refnamespace = isImport ? '' : 'pdk::'
+  const rawType = v2ToStorageType(property.xtpType, refnamespace)
+  return 'std::expected<' + rawType + ', ' + refnamespace + 'Error>'
+}
+
+function v2ToCppParamType(type: XtpNormalizedType, isImport: boolean): string {
+  const refnamespace = isImport ? '' : 'pdk::';
+  switch (type.kind) {
+    case 'object':
+      const oType = (type as ObjectType)
+      if (oType.properties?.length > 0) {
+        const name = v2ToCppTypeX(type, refnamespace);
+        if (v2GetEstimatedSize(type) <= 8) {
+          return name;
+        }
+        const prefix = isImport ? 'const ' : '';
+        if (type.nullable && v2IsLargeType(type)) {
+          const rawType = v2ToCppTypeXInner(type, refnamespace);
+          if (isImport) {
+            return prefix + rawType + ' *';
+          }
+          return prefix + 'std::unique_ptr<' + rawType + '>';
+        }
+        const suffix = isImport ? '&' : '&&';
+        return prefix + name + suffix;
+      }
+      break;
     case "string":
       if (isImport) {
-        if (property.format === "date-time") {
-          return "std::string_view";
-        }
+        return "std::string_view";
+      } else {
+        return 'std::string&&';
+      }
+    case "date-time":
+      if (isImport) {
         return "std::string_view";
       } else {
         return 'std::string&&';
@@ -111,56 +180,16 @@ function toCppParamType(property: PropertyLike, isImport: boolean): string {
         return 'std::vector<uint8_t>&&';
       }
     case "array":
-      if (isImport) {
-        return 'std::span<const ' + toCppType(property, refnamespace) + '>';
-      } else {
-        return 'std::vector<' + toCppType(property, refnamespace) + '>&&';
-      }
+    case "map":
+      const atype = v2ToCppTypeX(type, refnamespace);
+      return (isImport ? 'const ' : '') + atype + (isImport ? '&' : '&&')
   }
-  return toCppType(property, refnamespace);
-}
-
-function getEstimatedSize(property: PropertyLike): number {
-  if (property.$ref) {
-    if (property.$ref.enum) {
-      return 5;
-    }
-    return property.$ref.properties.reduce((accumulator: number, currentValue: Property) => {
-      return accumulator + getEstimatedSize(currentValue);
-    }, 0);
-  }
-  switch (property.type) {
-    case "string":
-      if (property.format === "date-time") {
-        return 14;
-      }
-      return 16;
-    case "number":
-      if (property.format === "float") {
-        return 4;
-      }
-      if (property.format === "double") {
-        return 8;
-      }
-      return 8;
-    case "integer":
-      return 4;
-    case "boolean":
-      return 1;
-    case "object":
-      return 64;
-    case "array":
-      return 16;
-    case "buffer":
-      return 16;
-    default:
-      throw new Error("Cannot estimate size of type: " + property.type);
-  }
+  return v2ToCppTypeX(type, refnamespace);
 }
 
 function getImportReturnType(func: Import) {
   if (func.output) {
-    return toCppReturnType(func.output, true);
+    return v2ToCppReturnType(func.output, true)
   } else if (!func.input) {
     return 'void';
   }
@@ -173,7 +202,7 @@ function shouldImportReturnExplicitly(func: Import) {
 
 function getImportParamType(func: Import) {
   if (func.input) {
-    return toCppParamType(func.input, true);
+    return v2ToCppParamType(func.input.xtpType, true)
   }
   return '';
 }
@@ -187,14 +216,14 @@ function getParamName(func: Import | Export) {
 
 function getExportReturnType(func: Export) {
   if (func.output) {
-    return toCppReturnType(func.output, false);
+    return v2ToCppReturnType(func.output, false)
   }
   return 'std::expected<void, pdk::Error>';
 }
 
 function getExportParamType(func: Export) {
   if (func.input) {
-    return toCppParamType(func.input, false);
+    return v2ToCppParamType(func.input.xtpType, false)
   }
   return '';
 }
@@ -203,123 +232,104 @@ function getPropertyNames(schema: Schema) {
   return schema.properties.map((item: Property) => item.name).join(', ');
 }
 
-function isEnum(prop: PropertyLike) {
-  return prop['$ref'] && prop['$ref']['enum'];
-}
-
-function isString(param: Parameter) {
-  return !param['$ref'] && param.type === 'string' && !param.format;
-}
-
 function getHandleType(prop: Parameter) {
   if (prop.contentType === 'application/json') {
     return 'char';
-  }
-  else if (isEnum(prop) && prop.contentType === 'text/plain; charset=utf-8') {
+  } else if (helpers.isEnum(prop) && prop.contentType === 'text/plain; charset=utf-8') {
     return 'char';
-  }
-  else if (!prop['$ref']) {
-    if (prop.contentType === "application/x-binary") {
-      if (prop.type === 'buffer') {
-        return 'uint8_t';
-      } else if (prop.type === 'array' && !(prop.items as Property)['$ref']) {
-        // support fixed width numeric types
-        const aprop = prop.items as Property;
-        if (aprop.type === 'number' || aprop.type === 'integer') {
-          return toCppType(aprop, '');
-        }
-      }
-    } else if (prop.contentType === 'text/plain; charset=utf-8') {
-      if (prop.type === 'string' && !prop.format) {
-        return 'char';
-      } else if (prop.type === 'buffer') {
-        return 'char';
+  } else if (prop.contentType === "application/x-binary") {
+    if (helpers.isBuffer(prop)) {
+      return 'uint8_t';
+    } else if (helpers.isArray(prop)) {
+      // unofficial extension - support fixed width types
+      const arrayType = prop.xtpType as ArrayType
+      switch (arrayType.elementType.kind) {
+        case 'byte':
+        case 'int32':
+        case 'int64':
+        case 'float':
+        case 'double':
+          return v2ToCppTypeXInner(arrayType.elementType, '')
       }
     }
+  } else if (prop.contentType === 'text/plain; charset=utf-8') {
+    if (helpers.isString(prop) || helpers.isBuffer(prop)) {
+      return 'char'
+    }
   }
-  throw new Error("not sure what the handle type should be for " + prop.type + ' encoded as ' + prop.contentType);
+  throw new Error("not sure what the handle type should be for " + prop.xtpType.kind + ' encoded as ' + prop.contentType);
 }
 
 function getHandleAccessor(prop: Parameter) {
   if (getHandleType(prop) != 'char') {
     return 'vec';
-  } else if (!prop['$ref'] && prop.contentType === 'text/plain; charset=utf-8' && prop.type === 'buffer') {
+  } else if (prop.contentType === 'text/plain; charset=utf-8' && helpers.isBuffer(prop)) {
     return 'vec';
   }
   return 'string';
 }
 
 function getJSONDecodeType(param: Parameter) {
-  return toStorageType(param, '');
+  return v2ToStorageType(param.xtpType, '')
 }
 
 function derefIfNotOptionalPointer(param: Parameter) {
-  if (param.nullable || !isLargeType(param)) {
+  if (param.xtpType.nullable || !v2IsLargeType(param.xtpType)) {
     return '';
   }
   return '*';
 }
 
 function needsNullCheck(param: Parameter) {
-  return !param.nullable && isLargeType(param);
+  return !param.xtpType.nullable && v2IsLargeType(param.xtpType)
 }
 
-function hasUntypedObject(objects: any) {
-  for (const object of objects) {
-    for (const prop of object.properties) {
-      if (!prop.$ref && prop.type === 'object') {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-function objectHasBuffer(object: Schema) {
+function objectHasBuffer(schema: Schema) {
+  const object = schema.xtpType as ObjectType
   for (const prop of object.properties) {
-    if (!prop.$ref && prop.type === 'buffer') {
-      return true;
+    if (prop.kind === 'buffer') {
+      return true
     }
   }
+  return false
 }
 
-function usesBuffer(objects: any) {
-  for (const object of objects) {
-    if (objectHasBuffer(object)) {
+function usesBuffer(objects: Schema[]) {
+  for (const schema of objects) {
+    if (objectHasBuffer(schema)) {
       return true;
     }
   }
   return false;
-}
-
-function isBuffer(prop: Property) {
-  return (!prop.$ref && prop.type === 'buffer');
 }
 
 export function render() {
   const tmpl = Host.inputString();
   const prevctx = getContext();
 
-  const enums: any[] = [];
-  const objects: any[] = [];
+  const enums: EnumType[] = [];
+  const objects: Schema[] = [];
   Object.values(prevctx.schema.schemas).forEach(schema => {
-    if (schema.enum) {
-      enums.push(schema);
-    } else {
+    if (helpers.isEnum(schema)) {
+      enums.push(schema.xtpType as EnumType);
+    } else if (helpers.isObject(schema)) {
+      const object = schema.xtpType as ObjectType;
       // insertion sort objects ahead of objects that use them
       let i = 0;
       for (; i < objects.length; i++) {
-        if (objectReferencesObject(objects[i], schema.name)) {
+        if (objectReferencesObject(objects[i].xtpType as ObjectType, object.name)) {
           break;
         }
       }
-      objects.splice(i, 0, schema);
+      objects.splice(i, 0, schema); // we need Schema as it has the required attribute
+    } else {
+      throw new Error("unhandled schema type " + schema.xtpType.kind)
     }
   });
   // sort the properties for efficient struct layout
   for (const object of objects) {
     object.properties.sort((a: Property, b: Property) => {
-      return getEstimatedSize(b) - getEstimatedSize(a);
+      return v2GetEstimatedSize(b.xtpType) - v2GetEstimatedSize(a.xtpType)
     });
   }
 
@@ -329,7 +339,6 @@ export function render() {
     cppIdentifer,
     enums,
     objects,
-    toCppType,
     getImportReturnType,
     shouldImportReturnExplicitly,
     getImportParamType,
@@ -337,24 +346,16 @@ export function render() {
     getExportReturnType,
     getExportParamType,
     getPropertyNames,
-    isEnum,
     getHandleType,
     getHandleAccessor,
     getJSONDecodeType,
     derefIfNotOptionalPointer,
     needsNullCheck,
-    isString,
-    hasUntypedObject,
     objectHasBuffer,
     usesBuffer,
-    isBuffer
+    v2ToCppType
   };
 
-
-
-
-  //Host.outputString(JSON.stringify(objects))
-  //Host.outputString(JSON.stringify(ctx.schema))
   const output = ejs.render(tmpl, ctx);
   Host.outputString(output);
 }

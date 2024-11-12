@@ -13,10 +13,10 @@
 namespace pdk {
 
 <%# encode enums  -%>
-<% for (const schema of enums) { %>
-// <%- formatCommentLine(schema.description) %>
-enum class <%- cppIdentifer(schema.name) %> {
-  <%- schema.enum.join(', ') %>
+<% for (const anEnum of enums) { %>
+// <%- formatCommentLine(anEnum.description) %>
+enum class <%- cppIdentifer(anEnum.name) %> {
+  <%- anEnum.values.join(', ') %>
 };
 <% } %>
 
@@ -26,7 +26,7 @@ enum class <%- cppIdentifer(schema.name) %> {
 struct <%- cppIdentifer(schema.name) %> {
   <% for (const prop of schema.properties) { -%>
   // <%- formatCommentLine(prop.description) %>
-  <%-toCppType(prop, '') %> <%- prop.name -%>;
+  <%-v2ToCppType(prop, '', prop.required) %> <%- prop.name -%>;
   <% } %>
 };
 <% } %>
