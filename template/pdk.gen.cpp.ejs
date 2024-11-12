@@ -18,9 +18,9 @@ static jsoncons::json toJSONFromByteBuffer(const std::vector<uint8_t> &val) {
 <% } -%>
 
 <%# encode enums  -%>
-<% for (const schema of enums) { -%>
-JSONCONS_ENUM_TRAITS( <%- 'pdk::'+cppIdentifer(schema.name) -%>,
-  <%- schema.enum.join(', ') -%> )
+<% for (const anEnum of enums) { -%>
+JSONCONS_ENUM_TRAITS( <%- 'pdk::'+cppIdentifer(anEnum.name) -%>,
+  <%- anEnum.values.join(', ') -%> )
 <% } -%>
 <%# encode structs  -%>
 <% for (const schema of objects) { -%>
