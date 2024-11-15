@@ -2,21 +2,24 @@
 #include <chrono>
 #include <cstddef>
 #include <expected>
+<% if (headerUsesJSON) { -%>
 #include <jsoncons/json.hpp>
+<% } -%>
 #include <memory>
 #include <span>
 #include <stdint.h>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace pdk {
 
 <%# encode enums  -%>
-<% for (const anEnum of enums) { %>
-// <%- formatCommentLine(anEnum.description) %>
-enum class <%- cppIdentifer(anEnum.name) %> {
-  <%- anEnum.values.join(', ') %>
+<% for (const schema of enums) { %>
+// <%- formatCommentLine(schema.description) %>
+enum class <%- cppIdentifer(schema.xtpType.name) %> {
+  <%- schema.xtpType.values.join(', ') %>
 };
 <% } %>
 

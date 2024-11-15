@@ -6,11 +6,14 @@ cd ../
 cd tests
 
 # Run through every schema in schemas/
+rm -rf output
+mkdir output
 for file in ./schemas/*.yaml; do
   echo "Generating and testing $file..."
-  rm -rf output
-  xtp plugin init --schema-file $file --template ../bundle --path output -y --feature stub-with-code-samples --name output
-  cd output
+  dir=${file##*/}
+  dir=${dir%.yaml}
+  xtp plugin init --schema-file $file --template ../bundle --path "output/$dir" -y --feature stub-with-code-samples --name $dir
+  cd "output/$dir"
   xtp plugin build
-  cd ..
+  cd ../..
 done
