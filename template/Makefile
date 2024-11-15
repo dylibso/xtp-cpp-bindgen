@@ -1,12 +1,3 @@
-.PHONY: build
-build: dist/plugin.wasm
-
-.PHONY: format
-format: wasisdk
-	$(WASI_SDK_PATH)/bin/clang-format -i *.cpp *.hpp
-
-.PHONY: wasisdk
-wasisdk:
 ifeq ($(origin WASI_SDK_PATH),undefined)
     WASI_SDK_PATH=./wasi-sdk
     ifeq ("$(wildcard ./wasi-sdk)","")
@@ -14,6 +5,17 @@ ifeq ($(origin WASI_SDK_PATH),undefined)
         $(shell ./install-wasi-sdk.sh)
     endif
 endif
+
+.PHONY: build
+build: dist/plugin.wasm
+
+.PHONY: wasisdk
+wasisdk:
+
+
+.PHONY: format
+format:
+	$(WASI_SDK_PATH)/bin/clang-format -i *.cpp *.hpp
 
 .PHONY: clean
 clean:
@@ -42,12 +44,12 @@ include/jsoncons/include:
 		unzip -qq v0.177.0.zip && \
 		mv jsoncons-0.177.0 jsoncons
 
-pdk.gen.o: wasisdk pdk.gen.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
+pdk.gen.o: pdk.gen.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
 	$(WASI_SDK_PATH)/bin/clang++ -Iinclude -Iinclude/jsoncons/include -Iinclude/magic_enum/include/magic_enum -std=c++23 -fno-exceptions -O2 -g -c pdk.gen.cpp
 
-impl.o: wasisdk impl.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
+impl.o: impl.cpp pdk.gen.hpp include/extism-pdk.hpp include/magic_enum/include/magic_enum include/jsoncons/include
 	$(WASI_SDK_PATH)/bin/clang++ -Iinclude -Iinclude/jsoncons/include -Iinclude/magic_enum/include/magic_enum -std=c++23 -fno-exceptions -O2 -g -c impl.cpp
 
-dist/plugin.wasm: wasisdk pdk.gen.o impl.o
+dist/plugin.wasm: pdk.gen.o impl.o
 	mkdir -p dist
-	$(WASI_SDK_PATH)/bin/clang++ -std=c++23 -fno-exceptions -O2 -g -o $@ pdk.gen.o impl.o -mexec-model=reactor
+	$(WASI_SDK_PATH)/bin/clang++ -std=c++23 -fno-exceptions -O2 -g -o $@ $^ -mexec-model=reactor

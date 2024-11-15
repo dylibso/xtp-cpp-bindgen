@@ -294,24 +294,53 @@ function objectHasBuffer(schema: Schema) {
   return false
 }
 
-function usesBuffer(objects: Schema[]) {
-  for (const schema of objects) {
-    if (objectHasBuffer(schema)) {
-      return true;
+function isPropertyRequired(property: Property) {
+  return property.required === undefined || property.required
+}
+
+function numRequiredProperties(object: Schema) {
+  let count = 0;
+  for (const prop of object.properties) {
+    if (isPropertyRequired(prop)) {
+      count++
     }
   }
-  return false;
+  return count
+}
+
+function sortedProperties(object: Schema) {
+  const properties: Property[] = []
+  let curRequiredProperties = 0
+  for (const prop of object.properties) {
+    if (!isPropertyRequired(prop)) {
+      properties.push(prop)
+      continue;
+    }
+    properties.splice(curRequiredProperties, 0, prop)
+    curRequiredProperties++
+  }
+  return properties
+}
+
+function isTypeUntypedObject(type: XtpNormalizedType) {
+  if (type.kind === 'object') {
+    const object = type as ObjectType;
+    if (!object.properties?.length && object.name === '') {
+      return true
+    }
+  }
+  return false
 }
 
 export function render() {
   const tmpl = Host.inputString();
   const prevctx = getContext();
 
-  const enums: EnumType[] = [];
+  const enums: Schema[] = [];
   const objects: Schema[] = [];
   Object.values(prevctx.schema.schemas).forEach(schema => {
     if (helpers.isEnum(schema)) {
-      enums.push(schema.xtpType as EnumType);
+      enums.push(schema);
     } else if (helpers.isObject(schema)) {
       const object = schema.xtpType as ObjectType;
       // insertion sort objects ahead of objects that use them
@@ -333,6 +362,60 @@ export function render() {
     });
   }
 
+  const headerUsesJSON = function () {
+    for (const schema of objects) {
+      const object = schema.xtpType as ObjectType;
+      for (const type of object.properties) {
+        if (isTypeUntypedObject(type)) {
+          return true
+        }
+      }
+    }
+    for (const funcSet of [prevctx.schema.imports, prevctx.schema.exports]) {
+      for (const func of funcSet) {
+        for (const param of [func.input, func.output]) {
+          if (param && isTypeUntypedObject(param.xtpType)) {
+            return true
+          }
+        }
+      }
+    }
+    return false
+  }();
+
+  const usesJSONEncoding = function () {
+    for (const funcSet of [prevctx.schema.imports, prevctx.schema.exports]) {
+      for (const func of funcSet) {
+        for (const param of [func.input, func.output]) {
+          if (param && param.contentType === 'application/json') {
+            return true
+          }
+        }
+      }
+    }
+    return false
+  }();
+
+  const usesBuffer = function () {
+    for (const schema of objects) {
+      if (objectHasBuffer(schema)) {
+        return true;
+      }
+    }
+    for (const funcSet of [prevctx.schema.imports, prevctx.schema.exports]) {
+      for (const func of funcSet) {
+        for (const param of [func.input, func.output]) {
+          if (param && helpers.isBuffer(param)) {
+            return true
+          }
+        }
+      }
+    }
+    return false;
+  }();
+
+  const usesJSONBuffer = usesJSONEncoding && usesBuffer;
+
   const ctx = {
     ...helpers,
     ...prevctx,
@@ -352,8 +435,12 @@ export function render() {
     derefIfNotOptionalPointer,
     needsNullCheck,
     objectHasBuffer,
-    usesBuffer,
-    v2ToCppType
+    usesJSONBuffer,
+    v2ToCppType,
+    numRequiredProperties,
+    sortedProperties,
+    headerUsesJSON,
+    usesJSONEncoding
   };
 
   const output = ejs.render(tmpl, ctx);

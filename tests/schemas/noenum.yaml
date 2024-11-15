@@ -1,0 +1,9 @@
+exports:
+  voidFunc:
+    description: "This demonstrates how you can create an export with\nno inputs or
+      outputs. \n"
+    codeSamples:
+    - lang: typescript
+      source: |
+        console.log(''Hello World!'')
+version: v1-draft
