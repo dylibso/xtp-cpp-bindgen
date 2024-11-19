@@ -310,16 +310,12 @@ function numRequiredProperties(object: Schema) {
 
 function sortedProperties(object: Schema) {
   const properties: Property[] = []
-  let curRequiredProperties = 0
+  const requiredProperties: Property[] = []
   for (const prop of object.properties) {
-    if (!isPropertyRequired(prop)) {
-      properties.push(prop)
-      continue;
-    }
-    properties.splice(curRequiredProperties, 0, prop)
-    curRequiredProperties++
+    const target = (isPropertyRequired(prop) ? requiredProperties : properties)
+    target.push(prop)
   }
-  return properties
+  return [...requiredProperties, ...properties]
 }
 
 function isTypeUntypedObject(type: XtpNormalizedType) {
