@@ -1,0 +1,4439 @@
+exports:
+  afterTaskUpdate:
+    input:
+      $ref: "#/components/schemas/TaskUpdate"
+      contentType: application/json
+    description: Called after a task is updated
+  beforeTaskUpdate:
+    input:
+      $ref: "#/components/schemas/TaskUpdate"
+      contentType: application/json
+    output:
+      $ref: "#/components/schemas/TaskChange"
+      contentType: application/json
+    description: Called before a task is updated
+imports:
+  findManyTasks:
+    input:
+      $ref: "#/components/schemas/FindManyTasksParameters"
+      contentType: application/json
+    output:
+      $ref: "#/components/schemas/FindManyTasksResult"
+      contentType: application/json
+  findOneWorkspaceMember:
+    input:
+      $ref: "#/components/schemas/FindOneWorkspaceMemberParameters"
+      contentType: application/json
+    output:
+      $ref: "#/components/schemas/FindOneWorkspaceMemberResult"
+      contentType: application/json
+  findManyWorkspaceMembers:
+    input:
+      $ref: "#/components/schemas/FindManyWorkspaceMembersParameters"
+      contentType: application/json
+    output:
+      $ref: "#/components/schemas/FindManyWorkspaceMembersResult"
+      contentType: application/json
+version: v1-draft
+components:
+  schemas:
+    Note:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Note body
+        title:
+          type: string
+          nullable: true
+          description: Note title
+        position:
+          type: number
+          nullable: true
+          description: Note record position
+        createdBy:
+          type: object
+      description: A note
+    Task:
+      properties:
+        id:
+          type: string
+          description: Task id
+        body:
+          type: string
+          nullable: true
+          description: Task body
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Task due date
+        title:
+          type: string
+          nullable: true
+          description: Task title
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+          nullable: true
+          description: Task status
+        position:
+          type: number
+          nullable: true
+          description: Task record position
+        createdBy:
+          type: object
+        assigneeId:
+          type: string
+          nullable: true
+          description: Task assignee id foreign key
+      description: A task
+    View:
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: View key
+        icon:
+          type: string
+          nullable: true
+          description: View icon
+        name:
+          type: string
+          nullable: true
+          description: View name
+        type:
+          type: string
+          nullable: true
+          description: View type
+        position:
+          type: number
+          nullable: true
+          description: View position
+        isCompact:
+          type: boolean
+          nullable: true
+          description: Describes if the view is in compact mode
+        objectMetadataId:
+          type: string
+          description: View target object
+        kanbanFieldMetadataId:
+          type: string
+          nullable: true
+          description: View Kanban column field
+      description: (System) Views
+    ApiKey:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: ApiKey name
+        expiresAt:
+          type: string
+          format: date-time
+          description: ApiKey expiration date
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ApiKey revocation date
+      description: An api key
+    Person:
+      properties:
+        city:
+          type: string
+          nullable: true
+          description: Contact’s city
+        name:
+          type: object
+        intro:
+          type: string
+          nullable: true
+          description: Contact's Intro
+        xLink:
+          type: object
+        emails:
+          type: object
+        phones:
+          type: object
+        jobTitle:
+          type: string
+          nullable: true
+          description: Contact’s job title
+        position:
+          type: number
+          nullable: true
+          description: Person record Position
+        whatsapp:
+          type: object
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Contact’s avatar
+        companyId:
+          type: string
+          nullable: true
+          description: Contact’s company id foreign key
+        createdBy:
+          type: object
+        linkedinLink:
+          type: object
+        workPrefereance:
+          type: string
+          nullable: true
+          description: Person's Work Preference
+        performanceRating:
+          type: string
+          nullable: true
+          description: Person's Performance Rating
+      description: A person
+    Rocket:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Name
+        position:
+          type: number
+          nullable: true
+          description: Position
+        createdBy:
+          type: object
+      description: A rocket
+    Comment:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Comment body
+        authorId:
+          type: string
+          description: Comment author id foreign key
+        activityId:
+          type: string
+          description: Comment activity id foreign key
+      description: A comment
+    Company:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: The company name
+        xLink:
+          type: object
+        address:
+          type: object
+        tagline:
+          type: string
+          nullable: true
+          description: Company's Tagline
+        position:
+          type: number
+          nullable: true
+          description: Company record position
+        createdBy:
+          type: object
+        employees:
+          type: integer
+          nullable: true
+          description: Number of employees in the company
+        domainName:
+          type: object
+        introVideo:
+          type: object
+        workPolicy:
+          type: string
+          nullable: true
+          description: Company's Work Policy
+        linkedinLink:
+          type: object
+        accountOwnerId:
+          type: string
+          nullable: true
+          description: Your team member responsible for managing the company account id
+            foreign key
+        visaSponsorship:
+          type: boolean
+          nullable: true
+          description: Company's Visa Sponsorship Policy
+        idealCustomerProfile:
+          type: boolean
+          nullable: true
+          description: "Ideal Customer Profile:  Indicates whether the company is the most
+            suitable and valuable customer for you"
+        annualRecurringRevenue:
+          type: object
+      description: A company
+    Message:
+      properties:
+        text:
+          type: string
+          nullable: true
+          description: Text
+        subject:
+          type: string
+          nullable: true
+          description: Subject
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The date the message was received
+        headerMessageId:
+          type: string
+          nullable: true
+          description: Message id from the message header
+        messageThreadId:
+          type: string
+          nullable: true
+          description: Message Thread Id id foreign key
+      description: Message
+    Webhook:
+      properties:
+        operation:
+          type: string
+          nullable: true
+          description: Webhook operation
+        targetUrl:
+          type: string
+          nullable: true
+          description: Webhook target url
+        description:
+          type: string
+          nullable: true
+      description: A webhook
+    Activity:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Activity body
+        type:
+          type: string
+          nullable: true
+          description: Activity type
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity due date
+        title:
+          type: string
+          nullable: true
+          description: Activity title
+        authorId:
+          type: string
+          nullable: true
+          description: Activity author id foreign key
+        assigneeId:
+          type: string
+          nullable: true
+          description: Activity assignee id foreign key
+        reminderAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity reminder date
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity completion date
+      description: An activity
+    AuditLog:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Event name/type
+        context:
+          type: object
+        recordId:
+          type: string
+          nullable: true
+          description: Record id
+        objectName:
+          type: string
+          nullable: true
+          description: Object name
+        properties:
+          type: object
+        objectMetadataId:
+          type: string
+          nullable: true
+          description: Object metadata id
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+      description: An audit log of actions performed in the system
+    Favorite:
+      properties:
+        noteId:
+          type: string
+          nullable: true
+          description: Favorite note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Favorite task id foreign key
+        viewId:
+          type: string
+          nullable: true
+          description: Favorite view id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: Favorite person id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: Favorite position
+        rocketId:
+          type: string
+          nullable: true
+          description: Favorite Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Favorite company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: Favorite opportunity id foreign key
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Favorite workspace member id foreign key
+      description: A favorite
+    ViewSort:
+      properties:
+        viewId:
+          type: string
+          nullable: true
+          description: View Sort related view id foreign key
+        direction:
+          type: string
+          nullable: true
+          description: View Sort direction
+        fieldMetadataId:
+          type: string
+          description: View Sort target field
+      description: (System) View Sorts
+    Blocklist:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        workspaceMemberId:
+          type: string
+          description: WorkspaceMember id foreign key
+      description: Blocklist
+    ViewField:
+      properties:
+        size:
+          type: integer
+          nullable: true
+          description: View Field size
+        viewId:
+          type: string
+          nullable: true
+          description: View Field related view id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: View Field position
+        isVisible:
+          type: boolean
+          nullable: true
+          description: View Field visibility
+        fieldMetadataId:
+          type: string
+          description: View Field target field
+      description: (System) View Fields
+    Attachment:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Attachment name
+        type:
+          type: string
+          nullable: true
+          description: Attachment type
+        noteId:
+          type: string
+          nullable: true
+          description: Attachment note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Attachment task id foreign key
+        authorId:
+          type: string
+          description: Attachment author id foreign key
+        fullPath:
+          type: string
+          nullable: true
+          description: Attachment full path
+        personId:
+          type: string
+          nullable: true
+          description: Attachment person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Attachment Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Attachment company id foreign key
+        activityId:
+          type: string
+          nullable: true
+          description: Attachment activity id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: Attachment opportunity id foreign key
+      description: An attachment
+    NoteTarget:
+      properties:
+        noteId:
+          type: string
+          nullable: true
+          description: NoteTarget note id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: NoteTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: NoteTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: NoteTarget company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: NoteTarget opportunity id foreign key
+      description: A note target
+    TaskChange:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        body:
+          type: string
+          nullable: true
+          description: Task body
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Task due date
+        title:
+          type: string
+          nullable: true
+          description: Task title
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+          nullable: true
+          description: Task status
+        assignee:
+          type: string
+          nullable: true
+          description: Task assignee
+        position:
+          type: number
+          nullable: true
+          description: Task record position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the task
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        assigneeId:
+          type: string
+          nullable: true
+          description: Task assignee id foreign key
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Task attachments
+        taskTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskTargetforResponse"
+          nullable: true
+          description: Task targets
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Timeline Activities linked to the task.
+      description: A task
+    TaskStatus:
+      enum:
+        - TODO
+        - INPROGRESS
+        - DONE
+      type: string
+      description: Status of a task
+    TaskTarget:
+      properties:
+        taskId:
+          type: string
+          nullable: true
+          description: TaskTarget task id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: TaskTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: TaskTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: TaskTarget company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: TaskTarget opportunity id foreign key
+      description: An task target
+    TaskUpdate:
+      properties:
+        change:
+          $ref: "#/components/schemas/TaskChange"
+          description: The changes being requested
+        original:
+          $ref: "#/components/schemas/Task"
+          description: The current state of the task
+      description: A task update
+    ViewFilter:
+      properties:
+        value:
+          type: string
+          nullable: true
+          description: View Filter value
+        viewId:
+          type: string
+          nullable: true
+          description: View Filter related view id foreign key
+        operand:
+          type: string
+          nullable: true
+          description: View Filter operand
+        displayValue:
+          type: string
+          nullable: true
+          description: View Filter Display Value
+        fieldMetadataId:
+          type: string
+          description: View Filter target field
+      description: (System) View Filters
+    Opportunity:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: The opportunity name
+        stage:
+          type: string
+          nullable: true
+          description: Opportunity stage
+        amount:
+          type: object
+        position:
+          type: number
+          nullable: true
+          description: Opportunity record position
+        closeDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Opportunity close date
+        companyId:
+          type: string
+          nullable: true
+          description: Opportunity company id foreign key
+        createdBy:
+          type: object
+        pointOfContactId:
+          type: string
+          nullable: true
+          description: Opportunity point of contact id foreign key
+      description: An opportunity
+    CalendarEvent:
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: Title
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: End Date
+        iCalUID:
+          type: string
+          nullable: true
+          description: iCal UID
+        location:
+          type: string
+          nullable: true
+          description: Location
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start Date
+        isFullDay:
+          type: boolean
+          nullable: true
+          description: Is Full Day
+        isCanceled:
+          type: boolean
+          nullable: true
+          description: Is canceled
+        description:
+          type: string
+          nullable: true
+          description: Description
+        conferenceLink:
+          type: object
+        externalCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation DateTime
+        externalUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Update DateTime
+        conferenceSolution:
+          type: string
+          nullable: true
+          description: Conference Solution
+        recurringEventExternalId:
+          type: string
+          nullable: true
+          description: Recurring Event ID
+      description: Calendar events
+    NoteforUpdate:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Note body
+        title:
+          type: string
+          nullable: true
+          description: Note title
+        position:
+          type: number
+          nullable: true
+          description: Note record position
+        createdBy:
+          type: object
+      description: A note
+    TaskforUpdate:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Task body
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Task due date
+        title:
+          type: string
+          nullable: true
+          description: Task title
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+          nullable: true
+          description: Task status
+        position:
+          type: number
+          nullable: true
+          description: Task record position
+        createdBy:
+          type: object
+        assigneeId:
+          type: string
+          nullable: true
+          description: Task assignee id foreign key
+      description: A task
+    ViewforUpdate:
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: View key
+        icon:
+          type: string
+          nullable: true
+          description: View icon
+        name:
+          type: string
+          nullable: true
+          description: View name
+        type:
+          type: string
+          nullable: true
+          description: View type
+        position:
+          type: number
+          nullable: true
+          description: View position
+        isCompact:
+          type: boolean
+          nullable: true
+          description: Describes if the view is in compact mode
+        objectMetadataId:
+          type: string
+          nullable: true
+          description: View target object
+        kanbanFieldMetadataId:
+          type: string
+          nullable: true
+          description: View Kanban column field
+      description: (System) Views
+    ActivityTarget:
+      properties:
+        personId:
+          type: string
+          nullable: true
+          description: ActivityTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: ActivityTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: ActivityTarget company id foreign key
+        activityId:
+          type: string
+          nullable: true
+          description: ActivityTarget activity id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: ActivityTarget opportunity id foreign key
+      description: An activity target
+    MessageChannel:
+      properties:
+        type:
+          type: string
+          nullable: true
+          description: Channel Type
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last sync date
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        syncCursor:
+          type: string
+          nullable: true
+          description: Last sync cursor
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccountId:
+          type: string
+          description: Connected Account id foreign key
+        excludeGroupEmails:
+          type: boolean
+          nullable: true
+          description: Exclude group emails
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create People records when receiving or sending emails
+        excludeNonProfessionalEmails:
+          type: boolean
+          nullable: true
+          description: Exclude non professional emails
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+      description: Message Channels
+    ApiKeyforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: ApiKey name
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ApiKey expiration date
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ApiKey revocation date
+      description: An api key
+    CalendarChannel:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        syncCursor:
+          type: string
+          nullable: true
+          description: Sync Cursor. Used for syncing events from the calendar provider
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccountId:
+          type: string
+          description: Connected Account id foreign key
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create records for people you participated with in an
+            event.
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+      description: Calendar Channels
+    NoteforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        body:
+          type: string
+          nullable: true
+          description: Note body
+        title:
+          type: string
+          nullable: true
+          description: Note title
+        position:
+          type: number
+          nullable: true
+          description: Note record position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the note
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Note attachments
+        noteTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteTargetforResponse"
+          nullable: true
+          description: Note targets
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Timeline Activities linked to the note.
+      description: A note
+    PersonforUpdate:
+      properties:
+        city:
+          type: string
+          nullable: true
+          description: Contact’s city
+        name:
+          type: object
+        intro:
+          type: string
+          nullable: true
+          description: Contact's Intro
+        xLink:
+          type: object
+        emails:
+          type: object
+        phones:
+          type: object
+        jobTitle:
+          type: string
+          nullable: true
+          description: Contact’s job title
+        position:
+          type: number
+          nullable: true
+          description: Person record Position
+        whatsapp:
+          type: object
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Contact’s avatar
+        companyId:
+          type: string
+          nullable: true
+          description: Contact’s company id foreign key
+        createdBy:
+          type: object
+        linkedinLink:
+          type: object
+        workPrefereance:
+          type: string
+          nullable: true
+          description: Person's Work Preference
+        performanceRating:
+          type: string
+          nullable: true
+          description: Person's Performance Rating
+      description: A person
+    RocketforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Name
+        position:
+          type: number
+          nullable: true
+          description: Position
+        createdBy:
+          type: object
+      description: A rocket
+    ViewforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        key:
+          type: string
+          nullable: true
+          description: View key
+        icon:
+          type: string
+          nullable: true
+          description: View icon
+        name:
+          type: string
+          nullable: true
+          description: View name
+        type:
+          type: string
+          nullable: true
+          description: View type
+        position:
+          type: number
+          nullable: true
+          description: View position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the view
+        isCompact:
+          type: boolean
+          nullable: true
+          description: Describes if the view is in compact mode
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        viewSorts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ViewSortforResponse"
+          nullable: true
+          description: View Sorts
+        viewFields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ViewFieldforResponse"
+          nullable: true
+          description: View Fields
+        viewFilters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ViewFilterforResponse"
+          nullable: true
+          description: View Filters
+        objectMetadataId:
+          type: string
+          nullable: true
+          description: View target object
+        kanbanFieldMetadataId:
+          type: string
+          nullable: true
+          description: View Kanban column field
+      description: (System) Views
+    WorkspaceMember:
+      properties:
+        id:
+          type: string
+          description: The database id
+        name:
+          type: object
+        locale:
+          type: string
+          nullable: true
+          description: Preferred language
+        userId:
+          type: string
+          description: Associated User Id
+        timeZone:
+          type: string
+          nullable: true
+          description: User time zone
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Workspace member avatar
+        userEmail:
+          type: string
+          nullable: true
+          description: Related user email address
+        dateFormat:
+          type: string
+          nullable: true
+          description: User's preferred date format
+        timeFormat:
+          type: string
+          nullable: true
+          description: User's preferred time format
+        colorScheme:
+          type: string
+          nullable: true
+          description: Preferred color scheme
+      description: A workspace member
+    CommentforUpdate:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Comment body
+        authorId:
+          type: string
+          nullable: true
+          description: Comment author id foreign key
+        activityId:
+          type: string
+          nullable: true
+          description: Comment activity id foreign key
+      description: A comment
+    CompanyforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: The company name
+        xLink:
+          type: object
+        address:
+          type: object
+        tagline:
+          type: string
+          nullable: true
+          description: Company's Tagline
+        position:
+          type: number
+          nullable: true
+          description: Company record position
+        createdBy:
+          type: object
+        employees:
+          type: integer
+          nullable: true
+          description: Number of employees in the company
+        domainName:
+          type: object
+        introVideo:
+          type: object
+        workPolicy:
+          type: string
+          nullable: true
+          description: Company's Work Policy
+        linkedinLink:
+          type: object
+        accountOwnerId:
+          type: string
+          nullable: true
+          description: Your team member responsible for managing the company account id
+            foreign key
+        visaSponsorship:
+          type: boolean
+          nullable: true
+          description: Company's Visa Sponsorship Policy
+        idealCustomerProfile:
+          type: boolean
+          nullable: true
+          description: "Ideal Customer Profile:  Indicates whether the company is the most
+            suitable and valuable customer for you"
+        annualRecurringRevenue:
+          type: object
+      description: A company
+    ConnectedAccount:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: The account handle (email, username, phone number, etc.)
+        provider:
+          type: string
+          nullable: true
+          description: The account provider
+        accessToken:
+          type: string
+          nullable: true
+          description: Messaging provider access token
+        authFailedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Auth failed at
+        refreshToken:
+          type: string
+          nullable: true
+          description: Messaging provider refresh token
+        handleAliases:
+          type: string
+          nullable: true
+          description: Handle Aliases
+        accountOwnerId:
+          type: string
+          description: Account Owner id foreign key
+        lastSyncHistoryId:
+          type: string
+          nullable: true
+          description: Last sync history ID
+      description: A connected account
+    MessageforUpdate:
+      properties:
+        text:
+          type: string
+          nullable: true
+          description: Text
+        subject:
+          type: string
+          nullable: true
+          description: Subject
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The date the message was received
+        headerMessageId:
+          type: string
+          nullable: true
+          description: Message id from the message header
+        messageThreadId:
+          type: string
+          nullable: true
+          description: Message Thread Id id foreign key
+      description: Message
+    TimelineActivity:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Event name
+        noteId:
+          type: string
+          nullable: true
+          description: Event note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Event task id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: Event person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Timeline Activity Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Event company id foreign key
+        happensAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        properties:
+          type: object
+        opportunityId:
+          type: string
+          nullable: true
+          description: Event opportunity id foreign key
+        linkedRecordId:
+          type: string
+          nullable: true
+          description: Linked Record id
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+        linkedObjectMetadataId:
+          type: string
+          nullable: true
+          description: inked Object Metadata Id
+        linkedRecordCachedName:
+          type: string
+          nullable: true
+          description: Cached record name
+      description: Aggregated / filtered event to be displayed on the timeline
+    WebhookforUpdate:
+      properties:
+        operation:
+          type: string
+          nullable: true
+          description: Webhook operation
+        targetUrl:
+          type: string
+          nullable: true
+          description: Webhook target url
+        description:
+          type: string
+          nullable: true
+      description: A webhook
+    ActivityforUpdate:
+      properties:
+        body:
+          type: string
+          nullable: true
+          description: Activity body
+        type:
+          type: string
+          nullable: true
+          description: Activity type
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity due date
+        title:
+          type: string
+          nullable: true
+          description: Activity title
+        authorId:
+          type: string
+          nullable: true
+          description: Activity author id foreign key
+        assigneeId:
+          type: string
+          nullable: true
+          description: Activity assignee id foreign key
+        reminderAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity reminder date
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity completion date
+      description: An activity
+    ApiKeyforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: ApiKey name
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ApiKey expiration date
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: ApiKey revocation date
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+      description: An api key
+    AuditLogforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Event name/type
+        context:
+          type: object
+        recordId:
+          type: string
+          nullable: true
+          description: Record id
+        objectName:
+          type: string
+          nullable: true
+          description: Object name
+        properties:
+          type: object
+        objectMetadataId:
+          type: string
+          nullable: true
+          description: Object metadata id
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+      description: An audit log of actions performed in the system
+    FavoriteforUpdate:
+      properties:
+        noteId:
+          type: string
+          nullable: true
+          description: Favorite note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Favorite task id foreign key
+        viewId:
+          type: string
+          nullable: true
+          description: Favorite view id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: Favorite person id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: Favorite position
+        rocketId:
+          type: string
+          nullable: true
+          description: Favorite Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Favorite company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: Favorite opportunity id foreign key
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Favorite workspace member id foreign key
+      description: A favorite
+    PersonforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        city:
+          type: string
+          nullable: true
+          description: Contact’s city
+        name:
+          type: object
+        intro:
+          type: string
+          nullable: true
+          description: Contact's Intro
+        xLink:
+          type: object
+        emails:
+          type: object
+        phones:
+          type: object
+        company:
+          type: string
+          nullable: true
+          description: Contact’s company
+        jobTitle:
+          type: string
+          nullable: true
+          description: Contact’s job title
+        position:
+          type: number
+          nullable: true
+          description: Person record Position
+        whatsapp:
+          type: object
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Contact’s avatar
+        companyId:
+          type: string
+          nullable: true
+          description: Contact’s company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the contact
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Attachments linked to the contact.
+        noteTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteTargetforResponse"
+          nullable: true
+          description: Notes tied to the contact
+        taskTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskTargetforResponse"
+          nullable: true
+          description: Tasks tied to the contact
+        linkedinLink:
+          type: object
+        activityTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityTargetforResponse"
+          nullable: true
+          description: Activities tied to the contact
+        workPrefereance:
+          type: string
+          nullable: true
+          description: Person's Work Preference
+        performanceRating:
+          type: string
+          nullable: true
+          description: Person's Performance Rating
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Events linked to the person
+        messageParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageParticipantforResponse"
+          nullable: true
+          description: Message Participants
+        calendarEventParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEventParticipantforResponse"
+          nullable: true
+          description: Calendar Event Participants
+        pointOfContactForOpportunities:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpportunityforResponse"
+          nullable: true
+          description: List of opportunities for which that person is the point of contact
+      description: A person
+    RocketforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: Name
+        position:
+          type: number
+          nullable: true
+          description: Position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Deletion date
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites tied to the Rocket
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Attachments tied to the Rocket
+        noteTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteTargetforResponse"
+          nullable: true
+          description: Notes tied to the Rocket
+        taskTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskTargetforResponse"
+          nullable: true
+          description: Tasks tied to the Rocket
+        activityTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityTargetforResponse"
+          nullable: true
+          description: Activities tied to the Rocket
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Timeline Activities tied to the Rocket
+      description: A rocket
+    ViewSortforUpdate:
+      properties:
+        viewId:
+          type: string
+          nullable: true
+          description: View Sort related view id foreign key
+        direction:
+          type: string
+          nullable: true
+          description: View Sort direction
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Sort target field
+      description: (System) View Sorts
+    BlocklistforUpdate:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: WorkspaceMember id foreign key
+      description: Blocklist
+    CommentforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        body:
+          type: string
+          nullable: true
+          description: Comment body
+        author:
+          type: string
+          nullable: true
+          description: Comment author
+        activity:
+          type: string
+          nullable: true
+          description: Comment activity
+        authorId:
+          type: string
+          nullable: true
+          description: Comment author id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        activityId:
+          type: string
+          nullable: true
+          description: Comment activity id foreign key
+      description: A comment
+    CompanyforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: The company name
+        xLink:
+          type: object
+        people:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonforResponse"
+          nullable: true
+          description: People linked to the company.
+        address:
+          type: object
+        tagline:
+          type: string
+          nullable: true
+          description: Company's Tagline
+        position:
+          type: number
+          nullable: true
+          description: Company record position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        employees:
+          type: integer
+          nullable: true
+          description: Number of employees in the company
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the company
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        domainName:
+          type: object
+        introVideo:
+          type: object
+        workPolicy:
+          type: string
+          nullable: true
+          description: Company's Work Policy
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Attachments linked to the company
+        noteTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteTargetforResponse"
+          nullable: true
+          description: Notes tied to the company
+        taskTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskTargetforResponse"
+          nullable: true
+          description: Tasks tied to the company
+        accountOwner:
+          type: string
+          nullable: true
+          description: Your team member responsible for managing the company account
+        linkedinLink:
+          type: object
+        opportunities:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpportunityforResponse"
+          nullable: true
+          description: Opportunities linked to the company.
+        accountOwnerId:
+          type: string
+          nullable: true
+          description: Your team member responsible for managing the company account id
+            foreign key
+        activityTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityTargetforResponse"
+          nullable: true
+          description: Activities tied to the company
+        visaSponsorship:
+          type: boolean
+          nullable: true
+          description: Company's Visa Sponsorship Policy
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Timeline Activities linked to the company
+        idealCustomerProfile:
+          type: boolean
+          nullable: true
+          description: "Ideal Customer Profile:  Indicates whether the company is the most
+            suitable and valuable customer for you"
+        annualRecurringRevenue:
+          type: object
+      description: A company
+    MessageParticipant:
+      properties:
+        role:
+          type: string
+          nullable: true
+          description: Role
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        messageId:
+          type: string
+          description: Message id foreign key
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace member id foreign key
+      description: Message Participants
+    MessageforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        text:
+          type: string
+          nullable: true
+          description: Text
+        subject:
+          type: string
+          nullable: true
+          description: Subject
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        receivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: The date the message was received
+        messageThread:
+          type: string
+          nullable: true
+          description: Message Thread Id
+        headerMessageId:
+          type: string
+          nullable: true
+          description: Message id from the message header
+        messageThreadId:
+          type: string
+          nullable: true
+          description: Message Thread Id id foreign key
+        messageParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageParticipantforResponse"
+          nullable: true
+          description: Message Participants
+        messageChannelMessageAssociations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageChannelMessageAssociationforResponse"
+          nullable: true
+          description: Messages from the channel.
+      description: Message
+    ViewFieldforUpdate:
+      properties:
+        size:
+          type: integer
+          nullable: true
+          description: View Field size
+        viewId:
+          type: string
+          nullable: true
+          description: View Field related view id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: View Field position
+        isVisible:
+          type: boolean
+          nullable: true
+          description: View Field visibility
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Field target field
+      description: (System) View Fields
+    WebhookforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        operation:
+          type: string
+          nullable: true
+          description: Webhook operation
+        targetUrl:
+          type: string
+          nullable: true
+          description: Webhook target url
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        description:
+          type: string
+          nullable: true
+      description: A webhook
+    ActivityforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        body:
+          type: string
+          nullable: true
+          description: Activity body
+        type:
+          type: string
+          nullable: true
+          description: Activity type
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity due date
+        title:
+          type: string
+          nullable: true
+          description: Activity title
+        author:
+          type: string
+          nullable: true
+          description: Activity author
+        assignee:
+          type: string
+          nullable: true
+          description: Activity assignee
+        authorId:
+          type: string
+          nullable: true
+          description: Activity author id foreign key
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentforResponse"
+          nullable: true
+          description: Activity comments
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        assigneeId:
+          type: string
+          nullable: true
+          description: Activity assignee id foreign key
+        reminderAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity reminder date
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Activity attachments
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activity completion date
+        activityTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityTargetforResponse"
+          nullable: true
+          description: Activity targets
+      description: An activity
+    AttachmentforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Attachment name
+        type:
+          type: string
+          nullable: true
+          description: Attachment type
+        noteId:
+          type: string
+          nullable: true
+          description: Attachment note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Attachment task id foreign key
+        authorId:
+          type: string
+          nullable: true
+          description: Attachment author id foreign key
+        fullPath:
+          type: string
+          nullable: true
+          description: Attachment full path
+        personId:
+          type: string
+          nullable: true
+          description: Attachment person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Attachment Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Attachment company id foreign key
+        activityId:
+          type: string
+          nullable: true
+          description: Attachment activity id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: Attachment opportunity id foreign key
+      description: An attachment
+    AuditLogforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: Event name/type
+        context:
+          type: object
+        recordId:
+          type: string
+          nullable: true
+          description: Record id
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        objectName:
+          type: string
+          nullable: true
+          description: Object name
+        properties:
+          type: object
+        workspaceMember:
+          type: string
+          nullable: true
+          description: Event workspace member
+        objectMetadataId:
+          type: string
+          nullable: true
+          description: Object metadata id
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+      description: An audit log of actions performed in the system
+    FavoriteforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        note:
+          type: string
+          nullable: true
+          description: Favorite note
+        task:
+          type: string
+          nullable: true
+          description: Favorite task
+        view:
+          type: string
+          nullable: true
+          description: Favorite view
+        noteId:
+          type: string
+          nullable: true
+          description: Favorite note id foreign key
+        person:
+          type: string
+          nullable: true
+          description: Favorite person
+        rocket:
+          type: string
+          nullable: true
+          description: Favorite Rocket
+        taskId:
+          type: string
+          nullable: true
+          description: Favorite task id foreign key
+        viewId:
+          type: string
+          nullable: true
+          description: Favorite view id foreign key
+        company:
+          type: string
+          nullable: true
+          description: Favorite company
+        personId:
+          type: string
+          nullable: true
+          description: Favorite person id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: Favorite position
+        rocketId:
+          type: string
+          nullable: true
+          description: Favorite Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Favorite company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        opportunity:
+          type: string
+          nullable: true
+          description: Favorite opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: Favorite opportunity id foreign key
+        workspaceMember:
+          type: string
+          nullable: true
+          description: Favorite workspace member
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Favorite workspace member id foreign key
+      description: A favorite
+    FindManyTasksResult:
+      properties:
+        error:
+          type: object
+          nullable: true
+          description: error object if errored
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+          description: The tasks
+        totalCount:
+          type: integer
+          description: total count of records in the stream
+      description: Result of a task search
+    FindOneCompanyInput:
+      properties:
+        id:
+          type: string
+        depth:
+          type: integer
+          nullable: true
+      description: ""
+    NoteTargetforUpdate:
+      properties:
+        noteId:
+          type: string
+          nullable: true
+          description: NoteTarget note id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: NoteTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: NoteTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: NoteTarget company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: NoteTarget opportunity id foreign key
+      description: A note target
+    TaskTargetforUpdate:
+      properties:
+        taskId:
+          type: string
+          nullable: true
+          description: TaskTarget task id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: TaskTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: TaskTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: TaskTarget company id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: TaskTarget opportunity id foreign key
+      description: An task target
+    ViewFilterforUpdate:
+      properties:
+        value:
+          type: string
+          nullable: true
+          description: View Filter value
+        viewId:
+          type: string
+          nullable: true
+          description: View Filter related view id foreign key
+        operand:
+          type: string
+          nullable: true
+          description: View Filter operand
+        displayValue:
+          type: string
+          nullable: true
+          description: View Filter Display Value
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Filter target field
+      description: (System) View Filters
+    ViewSortforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        view:
+          type: string
+          nullable: true
+          description: View Sort related view
+        viewId:
+          type: string
+          nullable: true
+          description: View Sort related view id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        direction:
+          type: string
+          nullable: true
+          description: View Sort direction
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Sort target field
+      description: (System) View Sorts
+    BlocklistforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        workspaceMember:
+          type: string
+          nullable: true
+          description: WorkspaceMember
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: WorkspaceMember id foreign key
+      description: Blocklist
+    FindOneCompanyOutput:
+      properties:
+        payload:
+          $ref: "#/components/schemas/CompanyforResponse"
+          nullable: true
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP Status code
+      description: Output type for findOneCompany
+    OpportunityforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: The opportunity name
+        stage:
+          type: string
+          nullable: true
+          description: Opportunity stage
+        amount:
+          type: object
+        position:
+          type: number
+          nullable: true
+          description: Opportunity record position
+        closeDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Opportunity close date
+        companyId:
+          type: string
+          nullable: true
+          description: Opportunity company id foreign key
+        createdBy:
+          type: object
+        pointOfContactId:
+          type: string
+          nullable: true
+          description: Opportunity point of contact id foreign key
+      description: An opportunity
+    ViewFieldforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        size:
+          type: integer
+          nullable: true
+          description: View Field size
+        view:
+          type: string
+          nullable: true
+          description: View Field related view
+        viewId:
+          type: string
+          nullable: true
+          description: View Field related view id foreign key
+        position:
+          type: integer
+          nullable: true
+          description: View Field position
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        isVisible:
+          type: boolean
+          nullable: true
+          description: View Field visibility
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Field target field
+      description: (System) View Fields
+    AttachmentforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: Attachment name
+        note:
+          type: string
+          nullable: true
+          description: Attachment note
+        task:
+          type: string
+          nullable: true
+          description: Attachment task
+        type:
+          type: string
+          nullable: true
+          description: Attachment type
+        author:
+          type: string
+          nullable: true
+          description: Attachment author
+        noteId:
+          type: string
+          nullable: true
+          description: Attachment note id foreign key
+        person:
+          type: string
+          nullable: true
+          description: Attachment person
+        rocket:
+          type: string
+          nullable: true
+          description: Attachment Rocket
+        taskId:
+          type: string
+          nullable: true
+          description: Attachment task id foreign key
+        company:
+          type: string
+          nullable: true
+          description: Attachment company
+        activity:
+          type: string
+          nullable: true
+          description: Attachment activity
+        authorId:
+          type: string
+          nullable: true
+          description: Attachment author id foreign key
+        fullPath:
+          type: string
+          nullable: true
+          description: Attachment full path
+        personId:
+          type: string
+          nullable: true
+          description: Attachment person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Attachment Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Attachment company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        activityId:
+          type: string
+          nullable: true
+          description: Attachment activity id foreign key
+        opportunity:
+          type: string
+          nullable: true
+          description: Attachment opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: Attachment opportunity id foreign key
+      description: An attachment
+    CreateOneCompanyInput:
+      properties:
+        body:
+          $ref: "#/components/schemas/Company"
+        depth:
+          type: integer
+          nullable: true
+      description: ""
+    DeleteOneCompanyInput:
+      properties:
+        id:
+          type: string
+      description: ""
+    NoteTargetforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        note:
+          type: string
+          nullable: true
+          description: NoteTarget note
+        noteId:
+          type: string
+          nullable: true
+          description: NoteTarget note id foreign key
+        person:
+          type: string
+          nullable: true
+          description: NoteTarget person
+        rocket:
+          type: string
+          nullable: true
+          description: NoteTarget Rocket
+        company:
+          type: string
+          nullable: true
+          description: NoteTarget company
+        personId:
+          type: string
+          nullable: true
+          description: NoteTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: NoteTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: NoteTarget company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        opportunity:
+          type: string
+          nullable: true
+          description: NoteTarget opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: NoteTarget opportunity id foreign key
+      description: A note target
+    TaskTargetforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        task:
+          type: string
+          nullable: true
+          description: TaskTarget task
+        person:
+          type: string
+          nullable: true
+          description: TaskTarget person
+        rocket:
+          type: string
+          nullable: true
+          description: TaskTarget Rocket
+        taskId:
+          type: string
+          nullable: true
+          description: TaskTarget task id foreign key
+        company:
+          type: string
+          nullable: true
+          description: TaskTarget company
+        personId:
+          type: string
+          nullable: true
+          description: TaskTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: TaskTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: TaskTarget company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        opportunity:
+          type: string
+          nullable: true
+          description: TaskTarget opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: TaskTarget opportunity id foreign key
+      description: An task target
+    UpdateOneCompanyInput:
+      properties:
+        id:
+          type: string
+        body:
+          $ref: "#/components/schemas/CompanyforUpdate"
+        depth:
+          type: integer
+          nullable: true
+      description: ""
+    ViewFilterforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        view:
+          type: string
+          nullable: true
+          description: View Filter related view
+        value:
+          type: string
+          nullable: true
+          description: View Filter value
+        viewId:
+          type: string
+          nullable: true
+          description: View Filter related view id foreign key
+        operand:
+          type: string
+          nullable: true
+          description: View Filter operand
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        displayValue:
+          type: string
+          nullable: true
+          description: View Filter Display Value
+        fieldMetadataId:
+          type: string
+          nullable: true
+          description: View Filter target field
+      description: (System) View Filters
+    CalendarEventforUpdate:
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: Title
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: End Date
+        iCalUID:
+          type: string
+          nullable: true
+          description: iCal UID
+        location:
+          type: string
+          nullable: true
+          description: Location
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start Date
+        isFullDay:
+          type: boolean
+          nullable: true
+          description: Is Full Day
+        isCanceled:
+          type: boolean
+          nullable: true
+          description: Is canceled
+        description:
+          type: string
+          nullable: true
+          description: Description
+        conferenceLink:
+          type: object
+        externalCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation DateTime
+        externalUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Update DateTime
+        conferenceSolution:
+          type: string
+          nullable: true
+          description: Conference Solution
+        recurringEventExternalId:
+          type: string
+          nullable: true
+          description: Recurring Event ID
+      description: Calendar events
+    CreateOneCompanyOutput:
+      properties:
+        payload:
+          $ref: "#/components/schemas/CompanyforResponse"
+          nullable: true
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP Status code
+      description: Output type for createOneCompany
+    DeleteOneCompanyOutput:
+      properties:
+        payload:
+          type: object
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP Status code
+      description: Output type for deleteOneCompany
+    OpportunityforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: The opportunity name
+        stage:
+          type: string
+          nullable: true
+          description: Opportunity stage
+        amount:
+          type: object
+        company:
+          type: string
+          nullable: true
+          description: Opportunity company
+        position:
+          type: number
+          nullable: true
+          description: Opportunity record position
+        closeDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: Opportunity close date
+        companyId:
+          type: string
+          nullable: true
+          description: Opportunity company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        createdBy:
+          type: object
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the opportunity
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Attachments linked to the opportunity
+        noteTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteTargetforResponse"
+          nullable: true
+          description: Notes tied to the opportunity
+        taskTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskTargetforResponse"
+          nullable: true
+          description: Tasks tied to the opportunity
+        pointOfContact:
+          type: string
+          nullable: true
+          description: Opportunity point of contact
+        activityTargets:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityTargetforResponse"
+          nullable: true
+          description: Activities tied to the opportunity
+        pointOfContactId:
+          type: string
+          nullable: true
+          description: Opportunity point of contact id foreign key
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Timeline Activities linked to the opportunity.
+      description: An opportunity
+    UpdateOneCompanyOutput:
+      properties:
+        payload:
+          $ref: "#/components/schemas/CompanyforResponse"
+          nullable: true
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP Status code
+      description: Output type for UpdateOneCompany
+    ActivityTargetforUpdate:
+      properties:
+        personId:
+          type: string
+          nullable: true
+          description: ActivityTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: ActivityTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: ActivityTarget company id foreign key
+        activityId:
+          type: string
+          nullable: true
+          description: ActivityTarget activity id foreign key
+        opportunityId:
+          type: string
+          nullable: true
+          description: ActivityTarget opportunity id foreign key
+      description: An activity target
+    FindManyTasksParameters:
+      properties:
+        limit:
+          type: integer
+          nullable: true
+          description: limit number of results
+        filter:
+          type: object
+          description: Filter by columns
+      description: Parameters needed to find tasks
+    MessageChannelforUpdate:
+      properties:
+        type:
+          type: string
+          nullable: true
+          description: Channel Type
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last sync date
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        syncCursor:
+          type: string
+          nullable: true
+          description: Last sync cursor
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccountId:
+          type: string
+          nullable: true
+          description: Connected Account id foreign key
+        excludeGroupEmails:
+          type: boolean
+          nullable: true
+          description: Exclude group emails
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create People records when receiving or sending emails
+        excludeNonProfessionalEmails:
+          type: boolean
+          nullable: true
+          description: Exclude non professional emails
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+      description: Message Channels
+    CalendarChannelforUpdate:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        syncCursor:
+          type: string
+          nullable: true
+          description: Sync Cursor. Used for syncing events from the calendar provider
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccountId:
+          type: string
+          nullable: true
+          description: Connected Account id foreign key
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create records for people you participated with in an
+            event.
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+      description: Calendar Channels
+    CalendarEventParticipant:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        isOrganizer:
+          type: boolean
+          nullable: true
+          description: Is Organizer
+        responseStatus:
+          type: string
+          nullable: true
+          description: Response Status
+        calendarEventId:
+          type: string
+          description: Event ID id foreign key
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace Member id foreign key
+      description: Calendar event participants
+    CalendarEventforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        title:
+          type: string
+          nullable: true
+          description: Title
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: End Date
+        iCalUID:
+          type: string
+          nullable: true
+          description: iCal UID
+        location:
+          type: string
+          nullable: true
+          description: Location
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start Date
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        isFullDay:
+          type: boolean
+          nullable: true
+          description: Is Full Day
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        isCanceled:
+          type: boolean
+          nullable: true
+          description: Is canceled
+        description:
+          type: string
+          nullable: true
+          description: Description
+        conferenceLink:
+          type: object
+        externalCreatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation DateTime
+        externalUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Update DateTime
+        conferenceSolution:
+          type: string
+          nullable: true
+          description: Conference Solution
+        recurringEventExternalId:
+          type: string
+          nullable: true
+          description: Recurring Event ID
+        calendarEventParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEventParticipantforResponse"
+          nullable: true
+          description: Event Participants
+        calendarChannelEventAssociations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarChannelEventAssociationforResponse"
+          nullable: true
+          description: Calendar Channel Event Associations
+      description: Calendar events
+    MessageThreadforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageforResponse"
+          nullable: true
+          description: Messages from the thread.
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+      description: Message Thread
+    WorkspaceMemberforUpdate:
+      properties:
+        name:
+          type: object
+        locale:
+          type: string
+          nullable: true
+          description: Preferred language
+        userId:
+          type: string
+          nullable: true
+          description: Associated User Id
+        timeZone:
+          type: string
+          nullable: true
+          description: User time zone
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Workspace member avatar
+        userEmail:
+          type: string
+          nullable: true
+          description: Related user email address
+        dateFormat:
+          type: string
+          nullable: true
+          description: User's preferred date format
+        timeFormat:
+          type: string
+          nullable: true
+          description: User's preferred time format
+        colorScheme:
+          type: string
+          nullable: true
+          description: Preferred color scheme
+      description: A workspace member
+    ActivityTargetforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        person:
+          type: string
+          nullable: true
+          description: ActivityTarget person
+        rocket:
+          type: string
+          nullable: true
+          description: ActivityTarget Rocket
+        company:
+          type: string
+          nullable: true
+          description: ActivityTarget company
+        activity:
+          type: string
+          nullable: true
+          description: ActivityTarget activity
+        personId:
+          type: string
+          nullable: true
+          description: ActivityTarget person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: ActivityTarget Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: ActivityTarget company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        activityId:
+          type: string
+          nullable: true
+          description: ActivityTarget activity id foreign key
+        opportunity:
+          type: string
+          nullable: true
+          description: ActivityTarget opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: ActivityTarget opportunity id foreign key
+      description: An activity target
+    ConnectedAccountforUpdate:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: The account handle (email, username, phone number, etc.)
+        provider:
+          type: string
+          nullable: true
+          description: The account provider
+        accessToken:
+          type: string
+          nullable: true
+          description: Messaging provider access token
+        authFailedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Auth failed at
+        refreshToken:
+          type: string
+          nullable: true
+          description: Messaging provider refresh token
+        handleAliases:
+          type: string
+          nullable: true
+          description: Handle Aliases
+        accountOwnerId:
+          type: string
+          nullable: true
+          description: Account Owner id foreign key
+        lastSyncHistoryId:
+          type: string
+          nullable: true
+          description: Last sync history ID
+      description: A connected account
+    MessageChannelforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        type:
+          type: string
+          nullable: true
+          description: Channel Type
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last sync date
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        syncCursor:
+          type: string
+          nullable: true
+          description: Last sync cursor
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccount:
+          type: string
+          nullable: true
+          description: Connected Account
+        connectedAccountId:
+          type: string
+          nullable: true
+          description: Connected Account id foreign key
+        excludeGroupEmails:
+          type: boolean
+          nullable: true
+          description: Exclude group emails
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create People records when receiving or sending emails
+        excludeNonProfessionalEmails:
+          type: boolean
+          nullable: true
+          description: Exclude non professional emails
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+        messageChannelMessageAssociations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageChannelMessageAssociationforResponse"
+          nullable: true
+          description: Messages from the channel.
+      description: Message Channels
+    TimelineActivityforUpdate:
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Event name
+        noteId:
+          type: string
+          nullable: true
+          description: Event note id foreign key
+        taskId:
+          type: string
+          nullable: true
+          description: Event task id foreign key
+        personId:
+          type: string
+          nullable: true
+          description: Event person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Timeline Activity Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Event company id foreign key
+        happensAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        properties:
+          type: object
+        opportunityId:
+          type: string
+          nullable: true
+          description: Event opportunity id foreign key
+        linkedRecordId:
+          type: string
+          nullable: true
+          description: Linked Record id
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+        linkedObjectMetadataId:
+          type: string
+          nullable: true
+          description: inked Object Metadata Id
+        linkedRecordCachedName:
+          type: string
+          nullable: true
+          description: Cached record name
+      description: Aggregated / filtered event to be displayed on the timeline
+    CalendarChannelforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        syncStage:
+          type: string
+          nullable: true
+          description: Sync stage
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        syncCursor:
+          type: string
+          nullable: true
+          description: Sync Cursor. Used for syncing events from the calendar provider
+        syncStatus:
+          type: string
+          nullable: true
+          description: Sync status
+        visibility:
+          type: string
+          nullable: true
+          description: Visibility
+        isSyncEnabled:
+          type: boolean
+          nullable: true
+          description: Is Sync Enabled
+        connectedAccount:
+          type: string
+          nullable: true
+          description: Connected Account
+        connectedAccountId:
+          type: string
+          nullable: true
+          description: Connected Account id foreign key
+        syncStageStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Sync stage started at
+        throttleFailureCount:
+          type: integer
+          nullable: true
+          description: Throttle Failure Count
+        contactAutoCreationPolicy:
+          type: string
+          nullable: true
+          description: Automatically create records for people you participated with in an
+            event.
+        isContactAutoCreationEnabled:
+          type: boolean
+          nullable: true
+          description: Is Contact Auto Creation Enabled
+        calendarChannelEventAssociations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarChannelEventAssociationforResponse"
+          nullable: true
+          description: Calendar Channel Event Associations
+      description: Calendar Channels
+    FindCompanyDuplicatesInput:
+      properties:
+        body:
+          type: object
+        depth:
+          type: integer
+          nullable: true
+      description: ""
+    WorkspaceMemberforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: object
+        locale:
+          type: string
+          nullable: true
+          description: Preferred language
+        userId:
+          type: string
+          nullable: true
+          description: Associated User Id
+        timeZone:
+          type: string
+          nullable: true
+          description: User time zone
+        auditLogs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogforResponse"
+          nullable: true
+          description: Audit Logs linked to the workspace member
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Workspace member avatar
+        blocklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlocklistforResponse"
+          nullable: true
+          description: Blocklisted handles
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteforResponse"
+          nullable: true
+          description: Favorites linked to the workspace member
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        userEmail:
+          type: string
+          nullable: true
+          description: Related user email address
+        dateFormat:
+          type: string
+          nullable: true
+          description: User's preferred date format
+        timeFormat:
+          type: string
+          nullable: true
+          description: User's preferred time format
+        colorScheme:
+          type: string
+          nullable: true
+          description: Preferred color scheme
+        assignedTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskChange"
+          nullable: true
+          description: Tasks assigned to the workspace member
+        authoredComments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentforResponse"
+          nullable: true
+          description: Authored comments
+        connectedAccounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConnectedAccountforResponse"
+          nullable: true
+          description: Connected accounts
+        assignedActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityforResponse"
+          nullable: true
+          description: Activities assigned to the workspace member
+        authoredActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityforResponse"
+          nullable: true
+          description: Activities created by the workspace member
+        timelineActivities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineActivityforResponse"
+          nullable: true
+          description: Events linked to the workspace member
+        authoredAttachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentforResponse"
+          nullable: true
+          description: Attachments created by the workspace member
+        messageParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageParticipantforResponse"
+          nullable: true
+          description: Message Participants
+        accountOwnerForCompanies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyforResponse"
+          nullable: true
+          description: Account owner for companies
+        calendarEventParticipants:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEventParticipantforResponse"
+          nullable: true
+          description: Calendar Event Participants
+      description: A workspace member
+    ConnectedAccountforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        handle:
+          type: string
+          nullable: true
+          description: The account handle (email, username, phone number, etc.)
+        provider:
+          type: string
+          nullable: true
+          description: The account provider
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        accessToken:
+          type: string
+          nullable: true
+          description: Messaging provider access token
+        accountOwner:
+          type: string
+          nullable: true
+          description: Account Owner
+        authFailedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Auth failed at
+        refreshToken:
+          type: string
+          nullable: true
+          description: Messaging provider refresh token
+        handleAliases:
+          type: string
+          nullable: true
+          description: Handle Aliases
+        accountOwnerId:
+          type: string
+          nullable: true
+          description: Account Owner id foreign key
+        messageChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageChannelforResponse"
+          nullable: true
+          description: Message Channels
+        calendarChannels:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarChannelforResponse"
+          nullable: true
+          description: Calendar Channels
+        lastSyncHistoryId:
+          type: string
+          nullable: true
+          description: Last sync history ID
+      description: A connected account
+    FindCompanyDuplicatesOutput:
+      properties:
+        payload:
+          type: array
+          items:
+            type: object
+          nullable: true
+        statusCode:
+          type: integer
+          nullable: true
+          description: HTTP Status code
+      description: Output type for findCompanyDuplicates
+    MessageParticipantforUpdate:
+      properties:
+        role:
+          type: string
+          nullable: true
+          description: Role
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        messageId:
+          type: string
+          nullable: true
+          description: Message id foreign key
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace member id foreign key
+      description: Message Participants
+    TimelineActivityforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        name:
+          type: string
+          nullable: true
+          description: Event name
+        note:
+          type: string
+          nullable: true
+          description: Event note
+        task:
+          type: string
+          nullable: true
+          description: Event task
+        noteId:
+          type: string
+          nullable: true
+          description: Event note id foreign key
+        person:
+          type: string
+          nullable: true
+          description: Event person
+        rocket:
+          type: string
+          nullable: true
+          description: Timeline Activity Rocket
+        taskId:
+          type: string
+          nullable: true
+          description: Event task id foreign key
+        company:
+          type: string
+          nullable: true
+          description: Event company
+        personId:
+          type: string
+          nullable: true
+          description: Event person id foreign key
+        rocketId:
+          type: string
+          nullable: true
+          description: Timeline Activity Rocket id foreign key
+        companyId:
+          type: string
+          nullable: true
+          description: Event company id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        happensAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        properties:
+          type: object
+        opportunity:
+          type: string
+          nullable: true
+          description: Event opportunity
+        opportunityId:
+          type: string
+          nullable: true
+          description: Event opportunity id foreign key
+        linkedRecordId:
+          type: string
+          nullable: true
+          description: Linked Record id
+        workspaceMember:
+          type: string
+          nullable: true
+          description: Event workspace member
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Event workspace member id foreign key
+        linkedObjectMetadataId:
+          type: string
+          nullable: true
+          description: inked Object Metadata Id
+        linkedRecordCachedName:
+          type: string
+          nullable: true
+          description: Cached record name
+      description: Aggregated / filtered event to be displayed on the timeline
+    FindOneWorkspaceMemberResult:
+      properties:
+        member:
+          $ref: "#/components/schemas/WorkspaceMember"
+          nullable: true
+          description: The workspace member
+        status_code:
+          type: integer
+          description: HTTP Status code
+      description: Result of a workspace member lookup
+    MessageParticipantforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        role:
+          type: string
+          nullable: true
+          description: Role
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        person:
+          type: string
+          nullable: true
+          description: Person
+        message:
+          type: string
+          nullable: true
+          description: Message
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        messageId:
+          type: string
+          nullable: true
+          description: Message id foreign key
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        workspaceMember:
+          type: string
+          nullable: true
+          description: Workspace member
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace member id foreign key
+      description: Message Participants
+    FindManyWorkspaceMembersResult:
+      properties:
+        error:
+          type: object
+          nullable: true
+          description: error object if errored
+        totalCount:
+          type: integer
+          description: total count of records in the stream
+        workspaceMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceMember"
+          description: The workspace members
+      description: Result of a workspace member search
+    CalendarChannelEventAssociation:
+      properties:
+        calendarEventId:
+          type: string
+          description: Event ID id foreign key
+        eventExternalId:
+          type: string
+          nullable: true
+          description: Event external ID
+        calendarChannelId:
+          type: string
+          description: Channel ID id foreign key
+      description: Calendar Channel Event Associations
+    FindOneWorkspaceMemberParameters:
+      properties:
+        idPath:
+          type: string
+          description: Workspace member id
+      description: Parameters needed to find a workspace member
+    MessageChannelMessageAssociation:
+      properties:
+        direction:
+          type: string
+          nullable: true
+          description: Message Direction
+        messageId:
+          type: string
+          nullable: true
+          description: Message Id id foreign key
+        messageChannelId:
+          type: string
+          nullable: true
+          description: Message Channel Id id foreign key
+        messageExternalId:
+          type: string
+          nullable: true
+          description: Message id from the messaging provider
+        messageThreadExternalId:
+          type: string
+          nullable: true
+          description: Thread id from the messaging provider
+      description: Message Synced with a Message Channel
+    CalendarEventParticipantforUpdate:
+      properties:
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        isOrganizer:
+          type: boolean
+          nullable: true
+          description: Is Organizer
+        responseStatus:
+          type: string
+          nullable: true
+          description: Response Status
+        calendarEventId:
+          type: string
+          nullable: true
+          description: Event ID id foreign key
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace Member id foreign key
+      description: Calendar event participants
+    FindManyWorkspaceMembersParameters:
+      properties:
+        limit:
+          type: integer
+          nullable: true
+          description: limit number of results
+        filter:
+          type: object
+          description: Filter by columns
+      description: Parameters needed to find workspace members
+    CalendarEventParticipantforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        handle:
+          type: string
+          nullable: true
+          description: Handle
+        person:
+          type: string
+          nullable: true
+          description: Person
+        personId:
+          type: string
+          nullable: true
+          description: Person id foreign key
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        displayName:
+          type: string
+          nullable: true
+          description: Display Name
+        isOrganizer:
+          type: boolean
+          nullable: true
+          description: Is Organizer
+        calendarEvent:
+          type: string
+          nullable: true
+          description: Event ID
+        responseStatus:
+          type: string
+          nullable: true
+          description: Response Status
+        calendarEventId:
+          type: string
+          nullable: true
+          description: Event ID id foreign key
+        workspaceMember:
+          type: string
+          nullable: true
+          description: Workspace Member
+        workspaceMemberId:
+          type: string
+          nullable: true
+          description: Workspace Member id foreign key
+      description: Calendar event participants
+    CalendarChannelEventAssociationforUpdate:
+      properties:
+        calendarEventId:
+          type: string
+          nullable: true
+          description: Event ID id foreign key
+        eventExternalId:
+          type: string
+          nullable: true
+          description: Event external ID
+        calendarChannelId:
+          type: string
+          nullable: true
+          description: Channel ID id foreign key
+      description: Calendar Channel Event Associations
+    MessageChannelMessageAssociationforUpdate:
+      properties:
+        direction:
+          type: string
+          nullable: true
+          description: Message Direction
+        messageId:
+          type: string
+          nullable: true
+          description: Message Id id foreign key
+        messageChannelId:
+          type: string
+          nullable: true
+          description: Message Channel Id id foreign key
+        messageExternalId:
+          type: string
+          nullable: true
+          description: Message id from the messaging provider
+        messageThreadExternalId:
+          type: string
+          nullable: true
+          description: Thread id from the messaging provider
+      description: Message Synced with a Message Channel
+    CalendarChannelEventAssociationforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        calendarEvent:
+          type: string
+          nullable: true
+          description: Event ID
+        calendarChannel:
+          type: string
+          nullable: true
+          description: Channel ID
+        calendarEventId:
+          type: string
+          nullable: true
+          description: Event ID id foreign key
+        eventExternalId:
+          type: string
+          nullable: true
+          description: Event external ID
+        calendarChannelId:
+          type: string
+          nullable: true
+          description: Channel ID id foreign key
+      description: Calendar Channel Event Associations
+    MessageChannelMessageAssociationforResponse:
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Id
+        message:
+          type: string
+          nullable: true
+          description: Message Id
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Creation date
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when the record was deleted
+        direction:
+          type: string
+          nullable: true
+          description: Message Direction
+        messageId:
+          type: string
+          nullable: true
+          description: Message Id id foreign key
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the record was changed
+        messageChannel:
+          type: string
+          nullable: true
+          description: Message Channel Id
+        messageChannelId:
+          type: string
+          nullable: true
+          description: Message Channel Id id foreign key
+        messageExternalId:
+          type: string
+          nullable: true
+          description: Message id from the messaging provider
+        messageThreadExternalId:
+          type: string
+          nullable: true
+          description: Thread id from the messaging provider
+      description: Message Synced with a Message Channel
