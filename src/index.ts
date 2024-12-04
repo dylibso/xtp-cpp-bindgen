@@ -6,18 +6,6 @@ function cppIdentifer(s: string) {
   return helpers.snakeToPascalCase(s);
 }
 
-function objectReferencesObject(existing: ObjectType, name: string) {
-  for (const prop of existing.properties) {
-    if (prop.kind === 'object') {
-      const object = prop as ObjectType
-      if (object.name === name) {
-        return true
-      }
-    }
-  }
-  return false
-}
-
 function v2ToCppTypeXInner(type: XtpNormalizedType, refnamespace: string): string {
   switch (type.kind) {
     case 'string':
@@ -328,29 +316,89 @@ function isTypeUntypedObject(type: XtpNormalizedType) {
   return false
 }
 
+function addObject(objects: Schema[], schema: Schema) {
+  // find the object's direct dependencies
+  const names = new Set();
+  const object = schema.xtpType as ObjectType
+  for (const prop of object.properties) {
+    if (prop.kind === 'object') {
+      const object = prop as ObjectType
+      if (object.name) {
+        names.add(object.name)
+      }
+    } else if (prop.kind === 'array') {
+      const arrayType = prop as ArrayType
+      if (arrayType.elementType.kind === 'object') {
+        const object = arrayType.elementType as ObjectType
+        if (object.name) {
+          names.add(object.name)
+        }
+      }
+    } else if (prop.kind === 'map') {
+      const { keyType, valueType } = prop as MapType
+      if (valueType.kind === 'object') {
+        const object = valueType as ObjectType
+        if (object.name) {
+          names.add(object.name)
+        }
+      }
+    }
+  }
+  // loop until after the dependencies or end of objects
+  let i = 0;
+  for (; i < objects.length; i++) {
+    if (names.size === 0) {
+      break
+    }
+    const existing = objects[i]
+    const existingObject = existing.xtpType as ObjectType;
+    names.delete(existingObject.name)
+  }
+  // not all deps found, can't add yet
+  if (names.size) {
+    return false
+  }
+  // add
+  objects.splice(i, 0, schema);
+  return true
+}
+
 export function render() {
   const tmpl = Host.inputString();
   const prevctx = getContext();
 
   const enums: Schema[] = [];
+  const todoObjects: Schema[] = [];
   const objects: Schema[] = [];
-  Object.values(prevctx.schema.schemas).forEach(schema => {
+  for (const schema of Object.values(prevctx.schema.schemas)) {
     if (helpers.isEnum(schema)) {
       enums.push(schema);
     } else if (helpers.isObject(schema)) {
-      const object = schema.xtpType as ObjectType;
-      // insertion sort objects ahead of objects that use them
-      let i = 0;
-      for (; i < objects.length; i++) {
-        if (objectReferencesObject(objects[i].xtpType as ObjectType, object.name)) {
-          break;
-        }
+      // insertion sort add object after its dependencies
+      // if it's dependencies aren't in objects, defer
+      if (!addObject(objects, schema)) {
+        todoObjects.push(schema)
       }
-      objects.splice(i, 0, schema); // we need Schema as it has the required attribute
     } else {
       throw new Error("unhandled schema type " + schema.xtpType.kind)
     }
-  });
+  }
+  // add the remaining objects
+  // rather than doing dependency analysis
+  // each iteration loop through all the objects until we add an object
+  const maxIterations = todoObjects.length
+  for (let iter = 0; iter < maxIterations; iter++) {
+    for (let i = 0; i < todoObjects.length; i++) {
+      if (addObject(objects, todoObjects[i])) {
+        todoObjects.splice(i, 1)
+        break
+      }
+    }
+  }
+  if (todoObjects.length) {
+    throw new Error("Failed to add remaning objects")
+  }
+
   // sort the properties for efficient struct layout
   for (const object of objects) {
     object.properties.sort((a: Property, b: Property) => {
